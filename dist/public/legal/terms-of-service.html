@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Terms of Service for the Trace'N Find device tracking application.">
+    <title>Terms of Service - Trace'N Find</title>
+
+    <!-- Theme Script -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN (with Typography Plugin) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.3.5?plugin=typography"></script>
+
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon (Root-relative path) -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <!-- Custom Tailwind Config -->
+    <script>
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: ['selector', '[data-theme="dark"]'], 
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                            heading: ['Poppins', 'sans-serif'],
+                        },
+                        colors: {
+                            primary: {
+                                '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                                '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                                '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                            },
+                            indigo: { '500': '#6366f1' },
+                            purple: { '600': '#9333ea' },
+                            slate: { '700': '#334155', '800': '#1e293b', '900': '#0f172a' }
+                        },
+                        // Custom Animation
+                        animation: {
+                            'hero-gradient': 'heroGradient 15s ease infinite',
+                        },
+                        keyframes: {
+                            heroGradient: {
+                                '0%, 100%': { 'background-position': '0% 50%' },
+                                '50%': { 'background-position': '100% 50%' },
+                            },
+                        },
+                        // Custom Prose colors for dark mode readability
+                        typography: ({ theme }) => ({
+                            DEFAULT: {
+                                css: {
+                                    '--tw-prose-body': theme('colors.slate[700]'),
+                                    '--tw-prose-headings': theme('colors.slate[900]'),
+                                    '--tw-prose-links': theme('colors.primary[600]'),
+                                    '--tw-prose-bold': theme('colors.slate[900]'),
+                                },
+                            },
+                            invert: {
+                                css: {
+                                    '--tw-prose-body': theme('colors.slate[300]'),
+                                    '--tw-prose-headings': theme('colors.white'),
+                                    '--tw-prose-links': theme('colors.primary[400]'),
+                                    '--tw-prose-bold': theme('colors.white'),
+                                    '--tw-prose-hr': theme('colors.slate[700]'),
+                                    '--tw-prose-quote-borders': theme('colors.primary[700]'),
+                                    '--tw-prose-code': theme('colors.white'),
+                                    '--tw-prose-pre-code': theme('colors.slate[300]'),
+                                    '--tw-prose-pre-bg': 'rgb(0 0 0 / 50%)',
+                                    '--tw-prose-td-borders': theme('colors.slate[700]'),
+                                },
+                            },
+                        }),
+                    }
+                }
+            };
+        }
+    </script>
+    
+    <style>
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+
+        /* Glassmorphism Navbar Style */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+        }
+        .dark .glass-nav {
+            background: rgba(15, 23, 42, 0.7);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.7);
+        }
+        
+        /* Animated Gradient Background */
+        .hero-gradient {
+            background: linear-gradient(-45deg, #4361ee, #8596f6, #6366f1, #9333ea);
+            background-size: 400% 400%;
+            animation: heroGradient 15s ease infinite;
+        }
+
+        /* Preloader */
+        .preloader {
+            position: fixed; inset: 0; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .dark .preloader { background: #0f172a; }
+        .spinner {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid #e0e6fd; border-top-color: #4361ee;
+            animation: spin 1s linear infinite;
+        }
+        .dark .spinner { border-color: #1a2353; border-top-color: #6772f4; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Back to Top */
+        #backToTop {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; width: 3rem; height: 3rem;
+            border-radius: 9999px; background-color: #4361ee; color: white;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease; z-index: 40; transform: translateY(100px); opacity: 0;
+        }
+        #backToTop.is-visible { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white antialiased">
+
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300">
+        <nav class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="/index" class="flex items-center gap-2 no-underline">
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
+                    <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
+                </a>
+                
+                <!-- Desktop Nav -->
+                <div class="hidden lg:flex items-center gap-2">
+                    <a href="/index" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Home</a>
+                    <a href="/features" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Features</a>
+                    <a href="/how-it-works" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">How It Works</a>
+                    <a href="/about" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">About Us</a>
+                    <a href="/faq" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">FAQ</a>
+                    <a href="/blog" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Blog</a>
+                    <a href="/contact" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Contact</a>
+                </div>
+                
+                <!-- Auth Buttons -->
+                <div class="hidden lg:flex items-center gap-3">
+                    <a href="/login" class="px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Login</a>
+                    <a href="/register" class="px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5 shadow-md hover:shadow-lg">Sign Up</a>
+                    <button id="themeToggle" aria-label="Toggle theme" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
+                        <i class="bi bi-moon-fill block dark:hidden"></i>
+                        <i class="bi bi-sun-fill hidden dark:block"></i>
+                    </button>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <div class="lg:hidden flex items-center">
+                    <button id="themeToggleMobile" aria-label="Toggle theme" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
+                        <i class="bi bi-moon-fill block dark:hidden"></i>
+                        <i class="bi bi-sun-fill hidden dark:block"></i>
+                    </button>
+                    <button id="mobileMenuButton" class="inline-flex items-center justify-center p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-slate-800" aria-label="Main menu">
+                        <i class="bi bi-list text-3xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="/index" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Home</a>
+                    <a href="/features" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Features</a>
+                    <a href="/how-it-works" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">How It Works</a>
+                    <a href="/about" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">About Us</a>
+                    <a href="/faq" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">FAQ</a>
+                    <a href="/blog" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Blog</a>
+                    <a href="/contact" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Contact</a>
+                </div>
+                <div class="pt-4 pb-3 border-t border-slate-200 dark:border-slate-700 px-2">
+                    <div class="flex flex-col gap-2">
+                        <a href="/login" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-700">Login</a>
+                        <a href="/register" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">Sign Up</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden hero-gradient">
+            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="text-center">
+                    <h1 class="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white">
+                        Terms of Service
+                    </h1>
+                    <p class="mt-6 text-lg lg:text-xl text-primary-100 max-w-3xl mx-auto">
+                        Please read these terms carefully before using our service. This is a binding agreement.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Legal Content Section -->
+        <section class="py-20 lg:py-32 bg-white dark:bg-slate-900">
+            <div class="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+                <!-- Ensure prose styling is applied for light and dark mode -->
+                <article class="prose prose-lg lg:prose-xl dark:prose-invert max-w-none">
+                    <p class="lead">Last updated: October 28, 2025</p>
+                    
+                    <h2>1. Agreement to Terms</h2>
+                    <p>By creating an account or using the **Trace'N Find** service ("Service"), you agree to be bound by these **Terms of Service** ("Terms") and our <a href="./privacy-policy.html">Privacy Policy</a>. If you do not agree to these Terms, do not use the Service.</p>
+                    <p>This Service is provided as a **Final Year Project** by students of the German-Malaysian Institute (GMI). It is offered "as-is" for demonstration and academic purposes.</p>
+
+                    <h2>2. User Accounts</h2>
+                    <p>To use the Service, you must register for an account. You agree to provide accurate, current, and complete information during the registration process. You are responsible for **safeguarding your password** and for all activities that occur under your account. You must notify us immediately of any unauthorized use of your account.</p>
+
+                    <h2>3. Use of the Service</h2>
+                    <p>Trace'N Find grants you a limited, non-exclusive, non-transferable, revocable license to use the Service for its intended purpose: tracking and managing devices you own.</p>
+                    
+                    <h3>You agree NOT to:</h3>
+                    <ul>
+                        <li>Use the Service to **track, monitor, or obtain information** about any person or device without their express legal consent.</li>
+                        <li>Use the Service for any illegal, harassing, or malicious purpose.</li>
+                        <li>Reverse-engineer, decompile, or attempt to extract the source code of the Service.</li>
+                        <li>Interfere with or disrupt the integrity or performance of the Service or its underlying (Firebase) infrastructure.</li>
+                    </ul>
+                    <p>Using this Service to illegally monitor another individual is a severe violation of these Terms and may be a **criminal offense**. We will cooperate fully with law enforcement in such cases.</p>
+
+                    <h2>4. Security Features</h2>
+                    <p>The Service provides features such as Remote Lock, **Remote Wipe**, and Alarm (the "Security Features"). These features are provided "as-is."</p>
+                    <ul>
+                        <li><strong>Remote Wipe:</strong> You acknowledge that initiating a Remote Wipe command is **irreversible** and will result in the permanent deletion of all data on the target device. We are not liable for any data loss resulting from the use of this feature.</li>
+                        <li><strong>Service Dependency:</strong> The Security Features require the target device to be powered on and have a stable internet connection (Wi-Fi or cellular). We cannot guarantee these features will work in all circumstances (e.g., if the device is off, in airplane mode, or destroyed).</li>
+                    </ul>
+                    
+                    <h2>5. Termination</h2>
+                    <p>We may terminate or suspend your account and access to the Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.</p>
+                    <p>Upon termination, your right to use the Service will immediately cease. You may terminate your own account at any time through the account settings page.</p>
+                    
+                    <h2>6. Disclaimer of Warranties</h2>
+                    <p>As this is an academic project, the Service is provided on an **"AS IS"** and **"AS AVAILABLE"** basis. We make no warranties, express or implied, regarding the operation or availability of the Service, or that it will be uninterrupted, error-free, or 100% accurate. You use the Service at your own risk.</p>
+                    
+                    <h2>7. Limitation of Liability</h2>
+                    <p>In no event shall Trace'N Find, its students, or its faculty supervisors (GMI) be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the Service; (ii) any conduct or content of any third party on the Service; (iii) any **data loss**, including loss resulting from a failed backup or a successful Remote Wipe; or (iv) unauthorized access, use, or alteration of your transmissions or content.</p>
+                    
+                    <h2>8. Contact Us</h2>
+                    <p>If you have any questions about these Terms, please contact us:</p>
+                    <ul>
+                        <li>By email: <a href="mailto:legal@trace-n-find.com" class="text-primary-600 dark:text-primary-400 hover:underline">legal@trace-n-find.com</a></li>
+                        <li>By visiting our <a href="/contact" class="text-primary-600 dark:text-primary-400 hover:underline">Contact Page</a>.</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+        <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8">
+                <!-- Footer Brand -->
+                <div class="md:col-span-4 lg:col-span-2">
+                    <a href="/index" class="flex items-center gap-2 no-underline">
+                        <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
+                        <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
+                    </a>
+                    <p class="mt-4 text-slate-600 dark:text-slate-300 max-w-xs">
+                        Advanced device tracking with real-time location and security features.
+                    </p>
+                    <div class="mt-6 flex gap-4">
+                        <a href="#" aria-label="Follow us on Facebook" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i></a>
+                        <a href="#" aria-label="Follow us on Twitter" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-twitter"></i></a>
+                        <a href="#" aria-label="Follow us on Instagram" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i></a>
+                        <a href="#" aria-label="Follow us on LinkedIn" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <!-- Product Links -->
+                <div>
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Product</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/features" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Features</a></li>
+                        <li><a href="/how-it-works" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">How It Works</a></li>
+                        <li><a href="/pricing" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Pricing</a></li>
+                        <li><a href="/faq" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Company Links -->
+                <div>
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Company</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/about" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">About Us</a></li>
+                        <li><a href="/blog" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Blog</a></li>
+                        <li><a href="/careers" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Careers</a></li>
+                        <li><a href="/contact" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Legal Links (Root-relative paths) -->
+                <div class="lg:col-span-2">
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Legal</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/privacy-policy" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Privacy Policy</a></li>
+                        <li><a href="/terms-of-service" class="text-primary-600 dark:text-primary-400 font-medium no-underline">Terms of Service</a></li>
+                        <li><a href="/cookie-policy" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Cookie Policy</a></li>
+                        <li><a href="/GDPR-compliance" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">GDPR Compliance</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 text-center">
+                &copy; 2025 Trace'N Find. All rights reserved. | A German-Malaysian Institute FYP Project.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button id="backToTop" aria-label="Back to top" class="hover:bg-primary-700 hover:scale-110">
+        <i class="bi bi-arrow-up text-xl"></i>
+    </button>
+    
+    <!-- JS for App Shell & Interactions -->
+    <script src="/public/js/app.js" type="module"></script>
+</body>
+</html>

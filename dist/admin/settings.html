@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" class="h-full overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Admin Settings - Trace'N Find">
+    <title>Admin Settings - Trace'N Find</title>
+    
+    <!-- 
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+    -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          console.warn('Could not apply theme from localStorage:', e);
+        }
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- INTEGRATION FIX: Root-relative path -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                            '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                            '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                        },
+                        // AESTHETICS FIX: Use CSS variables
+                        success: 'var(--color-success)',
+                        warning: 'var(--color-warning)',
+                        danger: 'var(--color-danger)',
+                        info: 'var(--color-info)',
+                        'bg-primary': 'var(--color-bg-primary)',
+                        'bg-card': 'var(--color-bg-card)',
+                        'bg-sidebar': 'var(--color-bg-sidebar)',
+                        'text-primary': 'var(--color-text-primary)',
+                        'text-secondary': 'var(--color-text-secondary)',
+                        'border-color': 'var(--color-border)',
+                        'dark-bg-primary': '#0f172a',
+                        'dark-bg-card': '#1e293b',
+                        'dark-bg-sidebar': 'rgba(30, 41, 59, 0.8)',
+                        'dark-text-primary': '#f1f5f9',
+                        'dark-text-secondary': '#94a3b8',
+                        'dark-border-color': '#334155',
+                    },
+                    spacing: {
+                        'sidebar-full': '280px',
+                        'sidebar-mini': '80px',
+                        'header': '70px',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            'from': { opacity: '0', transform: 'translateY(10px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+        }
+        
+        /* App Layout Styles (from app-shell.js) */
+        :root {
+            --sidebar-width-full: 280px;
+            --sidebar-width-mini: 80px;
+            --header-height: 70px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* CSS variables for JS */
+            --color-bg-primary: #f1f5f9;
+            --color-bg-card: #ffffff;
+            --color-bg-sidebar: rgba(255, 255, 255, 0.8);
+            --color-text-primary: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --color-primary: #4361ee;
+            --color-primary-rgb: 67, 97, 238;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-info: #06b6d4;
+
+            --dark-bg-primary: #0f172a;
+            --dark-bg-card: #1e293b;
+            --dark-bg-sidebar: rgba(30, 41, 59, 0.8);
+            --dark-text-primary: #f1f5f9;
+            --dark-text-secondary: #94a3b8;
+            --dark-border-color: #334155;
+        }
+        
+        [data-theme="dark"] {
+            --color-bg-primary: var(--dark-bg-primary);
+            --color-bg-card: var(--dark-bg-card);
+            --color-bg-sidebar: var(--dark-bg-sidebar);
+            --color-text-primary: var(--dark-text-primary);
+            --color-text-secondary: var(--dark-text-secondary);
+            --color-border: var(--dark-border-color);
+        }
+        
+        /* Preloader */
+        #app-preloader {
+            position: fixed; inset: 0; z-index: 9999;
+            background-color: var(--color-bg-card);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 1; transition: opacity 0.3s ease;
+        }
+        .spinner {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width-full);
+            background-color: var(--color-bg-sidebar);
+            border-right: 1px solid var(--color-border);
+            flex-direction: column;
+            position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000;
+            transition: width 0.3s ease, transform 0.3s ease;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .sidebar-header { height: var(--header-height); border-bottom: 1px solid var(--color-border); }
+        .sidebar-nav { flex-grow: 1; padding: 1rem 0.75rem; overflow-y: auto; overflow-x: hidden; }
+        .sidebar-footer { border-top: 1px solid var(--color-border); }
+        .sidebar-mini { width: var(--sidebar-width-mini); }
+        .sidebar-mini .brand-text,
+        .sidebar-mini .nav-link-text,
+        .sidebar-mini .user-info,
+        .sidebar-mini .logout-text { opacity: 0; visibility: hidden; width: 0; transition: opacity 0.1s ease; }
+        .sidebar-mini .nav-link, .sidebar-mini .user-profile { justify-content: center; }
+        .sidebar-mini .nav-link-icon { margin-right: 0; font-size: 1.5rem; }
+        .sidebar-mini .logout-button { justify-content: center; }
+        .sidebar-mini .logo i { margin-right: 0; }
+        .sidebar-mini .nav-link { position: relative; }
+        .sidebar-mini .nav-link .nav-link-text {
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            margin-left: 1rem; background-color: var(--color-bg-card); color: var(--color-text-primary);
+            padding: 0.5rem 1rem; border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--color-border); white-space: nowrap;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+        }
+        .sidebar-mini .nav-link:hover .nav-link-text { opacity: 1; visibility: visible; transition-delay: 0.2s; }
+        
+        .main-content {
+            flex: 1; margin-left: var(--sidebar-width-full);
+            transition: margin-left 0.3s ease; display: flex; flex-direction: column;
+            height: 100vh;
+        }
+        .sidebar-mini + .main-content { margin-left: var(--sidebar-width-mini); }
+        
+        .header {
+            height: var(--header-height);
+            background-color: var(--color-bg-card);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky; top: 0; z-index: 999;
+            flex-shrink: 0;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        
+        /* Toast Container */
+        .toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toast { width: 350px; max-width: 90vw; padding: 1rem 1.25rem; border-radius: 0.75rem; background: var(--color-bg-card); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid var(--color-border); border-left-width: 4px; display: flex; align-items: flex-start; gap: 0.75rem; opacity: 0; transform: translateX(100%); transition: all 0.4s ease-in-out; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast-success { border-left-color: var(--color-success); } .toast-success .toast-icon { color: var(--color-success); }
+        .toast-error { border-left-color: var(--color-danger); } .toast-error .toast-icon { color: var(--color-danger); }
+        .toast-info { border-left-color: var(--color-info); } .toast-info .toast-icon { color: var(--color-info); }
+        .toast-icon { font-size: 1.25rem; margin-top: 0.125rem; }
+        .toast-content { flex: 1; } .toast-title { font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-primary); }
+        .toast-message { font-size: 0.9rem; color: var(--color-text-secondary); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--color-bg-card);
+            border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            width: 90%; max-width: 500px; padding: 1.5rem;
+            transform: scale(0.95); opacity: 0; transition: var(--transition-smooth);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
+        
+        /* Button */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-primary { background-color: var(--color-primary); color: white; }
+        .btn-primary:hover { background-color: #3a50d0; }
+        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; opacity: 0.7; }
+        .btn-danger { background-color: var(--color-danger); color: white; }
+        .btn-danger:hover { background-color: rgba(220, 53, 69, 0.8); }
+        .btn-secondary {
+            background-color: var(--color-bg-card);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-bg-primary);
+        }
+        [data-theme="dark"] .btn-secondary {
+            background-color: var(--color-bg-card);
+            border-color: var(--color-border);
+            color: var(--color-text-primary);
+        }
+        [data-theme="dark"] .btn-secondary:hover {
+            background-color: var(--color-border);
+        }
+        .btn-warning { background-color: var(--color-warning); color: #1e293b; }
+        .btn-warning:hover { background-color: rgba(245, 158, 11, 0.8); }
+
+
+        /* Button Spinner */
+        .button-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Settings Page Styles (from app/settings.html) */
+        .settings-card {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        .settings-card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .settings-card-body {
+            padding: 1.5rem;
+        }
+        .settings-card-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg-primary);
+        }
+        [data-theme="dark"] .settings-card-footer {
+            background-color: rgba(0,0,0,0.1);
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-primary);
+            transition: all 0.2s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+        }
+        .form-input:disabled {
+            background-color: var(--color-border);
+            color: var(--color-text-secondary);
+            cursor: not-allowed;
+        }
+        [data-theme="dark"] .form-input {
+             background-color: var(--dark-border-color);
+        }
+        .form-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px; /* w-11 */
+            height: 24px; /* h-6 */
+        }
+        .form-switch-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .form-switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-border);
+            transition: .4s;
+            border-radius: 9999px;
+        }
+        .form-switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; /* h-4.5 */
+            width: 18px; /* w-4.5 */
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        .form-switch-input:checked + .form-switch-slider {
+            background-color: var(--color-primary);
+        }
+        .form-switch-input:checked + .form-switch-slider:before {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-bg-primary dark:bg-dark-bg-primary font-sans text-text-primary dark:text-dark-text-primary overflow-hidden">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary-600 text-white">Skip to main content</a>
+
+    <!-- Full Page Preloader -->
+    <div id="app-preloader" class="bg-bg-card dark:bg-dark-bg-primary">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modalClose" aria-label="Close modal" class="absolute top-4 right-4 text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            <h3 id="modalTitle" class="text-xl font-heading font-bold mb-2 text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
+            <p id="modalMessage" class="text-text-secondary dark:text-dark-text-secondary mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modalCancel" class="btn btn-secondary">Cancel</button>
+                <button id="modalConfirm" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="app-container flex flex-grow-1 overflow-hidden">
+        <!-- ======================================================================
+             ADMIN SIDEBAR
+             ====================================================================== -->
+        <aside id="sidebar" class="sidebar flex -translate-x-full lg:translate-x-0">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
+                <!-- INTEGRATION FIX: Admin-specific title and link -->
+                <a href="./dashboard.html" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
+                    <i class="bi bi-shield-lock-fill flex-shrink-0 text-white bg-primary-600 p-2 rounded-lg"></i>
+                    <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find <span class="text-sm text-danger">(Admin)</span></span>
+                </a>
+                <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
+                    <i class="bi bi-chevron-bar-left"></i>
+                </button>
+            </div>
+
+            <!-- Sidebar Navigation -->
+            <nav class="sidebar-nav">
+                <ul class="flex flex-col gap-1">
+                    <!-- INTEGRATION FIX: Admin-specific navigation -->
+                    <li>
+                        <a href="./dashboard.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./users.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-people-fill nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">User Management</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./devices.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Device Overview</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-ticket-detailed-fill nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Support Tickets</span>
+                            <span id="ticketBadge" class="nav-link-text ml-auto px-2 py-0.5 bg-danger/20 text-danger dark:bg-danger/30 dark:text-danger rounded-full text-xs hidden">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./logs.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-card-text nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">System Logs</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-bar-chart-fill nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Analytics</span>
+                        </a>
+                    </li>
+                    <li>
+                        <!-- This is the active page -->
+                        <a href="./settings.html" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary-600 dark:text-primary-400 bg-primary-light dark:bg-dark-bg-card font-medium no-underline">
+                            <i class="bi bi-gear-fill nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Settings</span>
+                        </a>
+                    </li>
+                    <li class="mt-4 border-t border-border-color dark:border-dark-border-color pt-4">
+                        <a href="../app/dashboard.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-arrow-left-circle-fill nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Exit Admin Panel</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer px-6 py-4 flex-shrink-0">
+                <div class="user-profile flex items-center gap-3 mb-4">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=ef4444&color=fff" alt="Admin Avatar" class="user-avatar-display w-10 h-10 rounded-full flex-shrink-0">
+                    <div class="user-info overflow-hidden">
+                        <div class="user-name-display font-semibold text-text-primary dark:text-dark-text-primary truncate">Loading...</div>
+                        <div id="userEmail" class="user-role text-sm text-danger dark:text-danger truncate">Administrator</div>
+                    </div>
+                </div>
+                <button id="logoutButton" aria-label="Logout" class="logout-button w-full flex items-center gap-3 py-3 px-4 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all">
+                    <i class="bi bi-box-arrow-right nav-link-icon text-lg w-8"></i>
+                    <span class="logout-text font-medium">Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ======================================================================
+             MAIN CONTENT
+             ====================================================================== -->
+        <div class="main-content" id="main-content-area">
+            <!-- Header -->
+            <header class="header flex items-center justify-between px-6">
+                <!-- Mobile Menu Toggle -->
+                <button id="mobileMenuToggle" aria-label="Open navigation menu" class="lg:hidden text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <!-- Header Title -->
+                <h1 class="hidden md:block text-2xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Admin Settings</h1>
+                
+                <!-- Header Actions (Search, Notifications, User) -->
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="relative hidden sm:block">
+                        <label for="headerSearchInput" class="sr-only">Search</label>
+                        <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary dark:text-dark-text-secondary"></i>
+                        <input type="text" id="headerSearchInput" class="bg-bg-primary dark:bg-dark-bg-primary border border-border-color dark:border-dark-border-color rounded-full py-2 pl-10 pr-4 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 dark:focus:ring-primary-400" placeholder="Search...">
+                    </div>
+                    
+                    <button id="themeToggle" aria-label="Toggle theme" class="text-xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+                        <i class="bi bi-moon-fill"></i>
+                    </button>
+                    
+                    <div class="relative">
+                        <button id="userMenuToggle" aria-label="Open user menu" class="block w-10 h-10 rounded-full">
+                            <img src="https://ui-avatars.com/api/?name=Admin&background=ef4444&color=fff" alt="Admin Avatar" class="user-avatar-display w-full h-full rounded-full cursor-pointer hover:ring-2 hover:ring-primary-600 dark:hover:ring-primary-400 transition-all">
+                        </button>
+                        <!-- User Dropdown -->
+                        <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
+                            <a href="#" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">My Profile</a>
+                            <a href="../app/dashboard.html" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Exit Admin</a>
+                            <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-100 dark:hover:bg-red-900/30">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-grow p-6 overflow-y-auto" id="main-content">
+                
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <!-- Page Header -->
+                    <div class="mb-6">
+                        <h1 class="text-3xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Admin Settings</h1>
+                        <p class="text-lg text-text-secondary dark:text-dark-text-secondary mt-1">Manage your admin profile and system preferences.</p>
+                    </div>
+
+                    <!-- Admin Profile Settings -->
+                    <form id="profile-settings-form" class="settings-card">
+                        <div class="settings-card-header">
+                            <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Admin Profile</h2>
+                            <p class="text-sm text-text-secondary dark:text-dark-text-secondary">Update your personal information.</p>
+                        </div>
+                        <div class="settings-card-body space-y-4">
+                            <div>
+                                <label for="profile-name" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Full Name</label>
+                                <input type="text" id="profile-name" class="form-input" placeholder="Enter your full name" required>
+                            </div>
+                            <div>
+                                <label for="profile-email" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Email Address</label>
+                                <input type="email" id="profile-email" class="form-input" placeholder="your@email.com" disabled>
+                                <p class="text-xs text-text-secondary dark:text-dark-text-secondary mt-1">Email address is tied to your admin account.</p>
+                            </div>
+                        </div>
+                        <div class="settings-card-footer flex justify-end">
+                            <button type="submit" id="save-profile-btn" class="btn btn-primary">
+                                <span class="button-text">Save Changes</span>
+                                <span class="button-spinner hidden"></span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Application Preferences -->
+                    <form id="preferences-form" class="settings-card" style="animation-delay: 100ms;">
+                        <div class="settings-card-header">
+                            <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Admin Preferences</h2>
+                            <p class="text-sm text-text-secondary dark:text-dark-text-secondary">Customize your admin panel experience.</p>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label for="theme-toggle-switch" class="font-semibold text-text-primary dark:text-dark-text-primary">Dark Mode</label>
+                                    <p class="text-sm text-text-secondary dark:text-dark-text-secondary">Toggle between light and dark themes.</p>
+                                </div>
+                                <label class="form-switch">
+                                    <input class="form-switch-input" type="checkbox" id="theme-toggle-switch">
+                                    <span class="form-switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-card-footer flex justify-end">
+                             <button type="submit" id="save-preferences-btn" class="btn btn-primary">
+                                <span class="button-text">Save Preferences</span>
+                                <span class="button-spinner hidden"></span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Account Security -->
+                    <div class="settings-card" style="animation-delay: 200ms;">
+                        <div class="settings-card-header">
+                            <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Security</h2>
+                        </div>
+                        <div class="settings-card-body flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                            <div>
+                                <h3 class="font-semibold text-text-primary dark:text-dark-text-primary">Change Your Password</h3>
+                                <p class="text-sm text-text-secondary dark:text-dark-text-secondary">Send a password reset link to your email.</p>
+                            </div>
+                            <button id="change-password-btn" class="btn btn-warning flex-shrink-0">
+                                <i class="bi bi-key-fill mr-2"></i> Send Reset Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         JAVASCRIPT
+         ====================================================================== -->
+    
+    <!-- 
+      CORE ADMIN APP SCRIPT 
+      INTEGRATION FIX: All paths are now root-relative and in the /admin/ folder.
+    -->
+    <script src="/admin/js/admin-app-shell.js" type="module"></script>
+    
+    <!-- 
+      PAGE-SPECIFIC SCRIPT
+      INTEGRATION FIX: All paths are now root-relative and in the /admin/ folder.
+    -->
+    <script src="/admin/js/settings-logic.js" type="module"></script>
+
+</body>
+</html>

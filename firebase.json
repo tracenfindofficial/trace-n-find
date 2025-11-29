@@ -1,0 +1,162 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "rewrites": [
+      {
+        "source": "/",
+        "destination": "/public/index.html"
+      },
+      {
+        "source": "/index",
+        "destination": "/public/index.html"
+      },
+      {
+        "source": "/features",
+        "destination": "/public/features.html"
+      },
+      {
+        "source": "/how-it-works",
+        "destination": "/public/how-it-works.html"
+      },
+      {
+        "source": "/about",
+        "destination": "/public/about.html"
+      },
+      {
+        "source": "/faq",
+        "destination": "/public/faq.html"
+      },
+      {
+        "source": "/blog",
+        "destination": "/public/blog.html"
+      },
+      {
+        "source": "/blog-post",
+        "destination": "/public/blog-post.html"
+      },
+      {
+        "source": "/contact",
+        "destination": "/public/contact.html"
+      },
+      {
+        "source": "/careers",
+        "destination": "/public/careers.html"
+      },
+      {
+        "source": "/pricing",
+        "destination": "/public/pricing.html"
+      },
+      {
+        "source": "/login",
+        "destination": "/public/auth/login.html"
+      },
+      {
+        "source": "/register",
+        "destination": "/public/auth/register.html"
+      },
+      {
+        "source": "/recovery",
+        "destination": "/public/auth/recovery.html"
+      },
+      {
+        "source": "/cookie-policy",
+        "destination": "/public/legal/cookie-policy.html"
+      },
+      {
+        "source": "/GDPR-compliance",
+        "destination": "/public/legal/GDPR-compliance.html"
+      },
+      {
+        "source": "/privacy-policy",
+        "destination": "/public/legal/privacy-policy.html"
+      },
+      {
+        "source": "/terms-of-service",
+        "destination": "/public/legal/terms-of-service.html"
+      },
+      {
+        "source": "/dashboard",
+        "destination": "/app/dashboard.html"
+      },
+      {
+        "source": "/security-actions",
+        "destination": "/app/security-actions.html"
+      },
+      {
+        "source": "/devices",
+        "destination": "/app/devices.html"
+      },
+      {
+        "source": "/add-device",
+        "destination": "/app/add-device.html"
+      },
+      {
+        "source": "/device-details",
+        "destination": "/app/device-details.html"
+      },
+      {
+        "source": "/map-view",
+        "destination": "/app/map-view.html"
+      },
+      {
+        "source": "/geofencing",
+        "destination": "/app/geofencing.html"
+      },
+      {
+        "source": "/location-history",
+        "destination": "/app/location-history.html"
+      },
+      {
+        "source": "/settings",
+        "destination": "/app/settings.html"
+      },
+      {
+        "source": "/profile",
+        "destination": "/app/profile.html"
+      },
+      {
+        "source": "/notifications",
+        "destination": "/app/notifications.html"
+      },
+      {
+        "source": "/backup",
+        "destination": "/app/backup.html"
+      },
+      {
+        "source": "/support",
+        "destination": "/app/support.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/admin/dashboard.html"
+      },
+      {
+        "source": "/admin/users",
+        "destination": "/admin/users.html"
+      },
+      {
+        "source": "/admin/devices",
+        "destination": "/admin/devices.html"
+      },
+      {
+        "source": "/admin/logs",
+        "destination": "/admin/logs.html"
+      },
+      {
+        "source": "/admin/settings",
+        "destination": "/admin/settings.html"
+      },
+      {
+        "source": "**",
+        "destination": "/public/404.html"
+      }
+    ]
+  }
+}

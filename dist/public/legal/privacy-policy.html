@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Privacy Policy for the Trace'N Find device tracking application.">
+    <title>Privacy Policy - Trace'N Find</title>
+
+    <!-- Theme Script -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN (with Typography Plugin) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.3.5?plugin=typography"></script>
+
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon (Root-relative path) -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <!-- Custom Tailwind Config -->
+    <script>
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: ['selector', '[data-theme="dark"]'], 
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                            heading: ['Poppins', 'sans-serif'],
+                        },
+                        colors: {
+                            primary: {
+                                '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                                '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                                '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                            },
+                            indigo: { '500': '#6366f1' },
+                            purple: { '600': '#9333ea' },
+                            slate: { '700': '#334155', '800': '#1e293b', '900': '#0f172a' }
+                        },
+                        // Custom Animation
+                        animation: {
+                            'hero-gradient': 'heroGradient 15s ease infinite',
+                        },
+                        keyframes: {
+                            heroGradient: {
+                                '0%, 100%': { 'background-position': '0% 50%' },
+                                '50%': { 'background-position': '100% 50%' },
+                            },
+                        },
+                        // Custom Prose colors for dark mode readability
+                        typography: ({ theme }) => ({
+                            DEFAULT: {
+                                css: {
+                                    '--tw-prose-body': theme('colors.slate[700]'),
+                                    '--tw-prose-headings': theme('colors.slate[900]'),
+                                    '--tw-prose-links': theme('colors.primary[600]'),
+                                    '--tw-prose-bold': theme('colors.slate[900]'),
+                                },
+                            },
+                            invert: {
+                                css: {
+                                    '--tw-prose-body': theme('colors.slate[300]'),
+                                    '--tw-prose-headings': theme('colors.white'),
+                                    '--tw-prose-links': theme('colors.primary[400]'),
+                                    '--tw-prose-bold': theme('colors.white'),
+                                    '--tw-prose-hr': theme('colors.slate[700]'),
+                                    '--tw-prose-quote-borders': theme('colors.primary[700]'),
+                                    '--tw-prose-code': theme('colors.white'),
+                                    '--tw-prose-pre-code': theme('colors.slate[300]'),
+                                    '--tw-prose-pre-bg': 'rgb(0 0 0 / 50%)',
+                                    '--tw-prose-td-borders': theme('colors.slate[700]'),
+                                },
+                            },
+                        }),
+                    }
+                }
+            };
+        }
+    </script>
+    
+    <style>
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+
+        /* Glassmorphism Navbar Style */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+        }
+        .dark .glass-nav {
+            background: rgba(15, 23, 42, 0.7);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.7);
+        }
+        
+        /* Navbar shadow on scroll */
+        .scrolled {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Hero Gradient */
+        .hero-gradient {
+            background: linear-gradient(-45deg, #4361ee, #8596f6, #6366f1, #9333ea);
+            background-size: 400% 400%;
+            animation: heroGradient 15s ease infinite;
+        }
+
+        /* Preloader */
+        .preloader {
+            position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .dark .preloader { background: #0f172a; }
+        .spinner {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid #e0e6fd; border-top-color: #4361ee;
+            animation: spin 1s linear infinite;
+        }
+        .dark .spinner { border-color: #1a2353; border-top-color: #6772f4; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Back to Top */
+        #backToTop {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; width: 3rem; height: 3rem;
+            border-radius: 9999px; background-color: #4361ee; color: white;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease; z-index: 40; transform: translateY(100px); opacity: 0;
+        }
+        #backToTop.is-visible { transform: translateY(0); opacity: 1; }
+
+        /* Scroll-triggered fade-in animation */
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white antialiased">
+
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300">
+        <nav class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="/index" class="flex items-center gap-2 no-underline">
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
+                    <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
+                </a>
+                
+                <!-- Desktop Nav -->
+                <div class="hidden lg:flex items-center gap-2">
+                    <a href="/index" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Home</a>
+                    <a href="/features" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Features</a>
+                    <a href="/how-it-works" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">How It Works</a>
+                    <a href="/about" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">About Us</a>
+                    <a href="/faq" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">FAQ</a>
+                    <a href="/blog" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Blog</a>
+                    <a href="/contact" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Contact</a>
+                </div>
+                
+                <!-- Auth Buttons -->
+                <div class="hidden lg:flex items-center gap-3">
+                    <a href="/login" class="px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Login</a>
+                    <a href="/register" class="px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5 shadow-md hover:shadow-lg">Sign Up</a>
+                    <button id="themeToggle" aria-label="Toggle theme" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
+                        <i class="bi bi-moon-fill block dark:hidden"></i>
+                        <i class="bi bi-sun-fill hidden dark:block"></i>
+                    </button>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <div class="lg:hidden flex items-center">
+                    <button id="themeToggleMobile" aria-label="Toggle theme" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
+                        <i class="bi bi-moon-fill block dark:hidden"></i>
+                        <i class="bi bi-sun-fill hidden dark:block"></i>
+                    </button>
+                    <button id="mobileMenuButton" class="inline-flex items-center justify-center p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-slate-800" aria-label="Main menu">
+                        <i class="bi bi-list text-3xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="/index" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Home</a>
+                    <a href="/features" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Features</a>
+                    <a href="/how-it-works" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">How It Works</a>
+                    <a href="/about" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">About Us</a>
+                    <a href="/faq" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">FAQ</a>
+                    <a href="/blog" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Blog</a>
+                    <a href="/contact" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Contact</a>
+                </div>
+                <div class="pt-4 pb-3 border-t border-slate-200 dark:border-slate-700 px-2">
+                    <div class="flex flex-col gap-2">
+                        <a href="/login" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-700">Login</a>
+                        <a href="/register" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">Sign Up</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden hero-gradient">
+            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="text-center">
+                    <h1 class="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white">
+                        Privacy Policy
+                    </h1>
+                    <p class="mt-6 text-lg lg:text-xl text-primary-100 max-w-3xl mx-auto">
+                        Your privacy is our priority. This policy outlines how we collect, use, and protect your personal data.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Legal Content Section -->
+        <section class="py-20 lg:py-32 bg-white dark:bg-slate-900">
+            <div class="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+                <!-- Ensuring high contrast using prose and dark:prose-invert -->
+                <article class="prose prose-lg lg:prose-xl dark:prose-invert max-w-none">
+                    <p class="lead">Last updated: October 28, 2025</p>
+                    
+                    <h2>1. Introduction</h2>
+                    <p>Welcome to **Trace'N Find** ("we," "our," or "us"). We are committed to protecting your privacy. This **Privacy Policy** explains how we collect, use, disclose, and safeguard your information when you use our website and mobile application (the "Service").</p>
+                    <p>By using our Service, you agree to the collection and use of information in accordance with this policy.</p>
+
+                    <h2>2. Information We Collect</h2>
+                    <p>We collect several different types of information for various purposes to provide and improve our Service to you.</p>
+                    
+                    <h3>A. Personal Information</h3>
+                    <p>While using our Service, we may ask you to provide us with certain personally identifiable information (**PII**) that can be used to contact or identify you. This includes:</p>
+                    <ul>
+                        <li>**Email Address:** Used for account creation, login, and important notifications.</li>
+                        <li>**Username:** Used to identify you on our public-facing service components.</li>
+                        <li>**Phone Number (Optional):** Used for **Multi-Factor Authentication (MFA)** and account recovery.</li>
+                    </ul>
+
+                    <h3>B. Device & Location Information</h3>
+                    <p>This is the core data required for our Service to function:</p>
+                    <ul>
+                        <li>**Real-Time Location:** We collect precise geolocation data (GPS, Wi-Fi, cellular) from your registered devices to display their location on your dashboard.</li>
+                        <li>**Location History:** We store a history of your device's locations to provide you with a breadcrumb trail.</li>
+                        <li>**Device Information:** We collect device-specific information such as device model, operating system, unique device identifiers (e.g., IMEI, Serial Number), and network information (IP address, MAC address).</li>
+                        <li>**Device Status:** We monitor and store your device's status, including battery level, network signal strength, and connectivity (online/offline).</li>
+                    </ul>
+
+                    <h2>3. How We Use Your Information</h2>
+                    <p>We use the collected data for various purposes:</p>
+                    <ul>
+                        <li>To provide and maintain the Service (i.e., to track your devices).</li>
+                        <li>To notify you about activity, such as **geofencing alerts** or low battery warnings.</li>
+                        <li>To allow you to execute **remote security commands** (lock, wipe, ring).</li>
+                        <li>To secure your account via Multi-Factor Authentication.</li>
+                        <li>To provide customer support.</li>
+                        <li>To monitor the usage of the Service and improve its performance and **scalability**.</li>
+                    </ul>
+                    
+                    <h2>4. Data Security</h2>
+                    <p>The security of your data is a core feature of our project. We implement robust security measures to protect your information.</p>
+                    <ul>
+                        <li>**Data Encryption:** All data transmitted to and from our servers is encrypted using **Transport Layer Security (TLS)**.</li>
+                        <li>**Firestore Security Rules:** We leverage Firebase's security rules to ensure your data is strictly segregated. Your private data (location, phone number, device details) is stored in a document path (<code>/user_data/{userId}</code>) that is **only accessible by you**. No other user can read or write to your private data.</li>
+                        <li>**Secure-by-Design:** Publicly visible information (like your <code>username</code>) is stored in a separate collection (<code>/users/{userId}</code>) to prevent accidental exposure of sensitive PII.</li>
+                    </ul>
+                    
+                    <h2>5. Data Retention</h2>
+                    <p>We will retain your **Personal Information** and **Location History** only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use your information to the extent necessary to comply with our legal obligations, resolve disputes, and enforce our policies.</p>
+                    <p>You may **delete your account and all associated data** at any time through your account settings page.</p>
+                    
+                    <h2>6. Your Data Protection Rights</h2>
+                    <p>You have certain data protection rights. We aim to take reasonable steps to allow you to correct, amend, delete, or limit the use of your Personal Information.</p>
+                    <ul>
+                        <li>**The right to access:** You can access your data at any time via your dashboard.</li>
+                        <li>**The right to rectification:** You can correct any inaccurate information from your profile settings.</li>
+                        <li>**The right to erasure:** You have the right to request that we delete your data.</li>
+                    </ul>
+                    
+                    <h2>7. Changes to This Privacy Policy</h2>
+                    <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the **"Last updated"** date at the top.</p>
+                    
+                    <h2>8. Contact Us</h2>
+                    <p>If you have any questions about this Privacy Policy, please contact us:</p>
+                    <ul>
+                        <li>By email: <a href="mailto:privacy@trace-n-find.com" class="text-primary-600 dark:text-primary-400 hover:underline">privacy@trace-n-find.com</a></li>
+                        <li>By visiting our <a href="/contact" class="text-primary-600 dark:text-primary-400 hover:underline">Contact Page</a>.</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+        <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8">
+                <!-- Footer Brand -->
+                <div class="md:col-span-4 lg:col-span-2">
+                    <a href="/index" class="flex items-center gap-2 no-underline">
+                        <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
+                        <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
+                    </a>
+                    <p class="mt-4 text-slate-600 dark:text-slate-300 max-w-xs">
+                        Advanced device tracking with real-time location and security features.
+                    </p>
+                    <div class="mt-6 flex gap-4">
+                        <a href="#" aria-label="Follow us on Facebook" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i></a>
+                        <a href="#" aria-label="Follow us on Twitter" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-twitter"></i></a>
+                        <a href="#" aria-label="Follow us on Instagram" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i></a>
+                        <a href="#" aria-label="Follow us on LinkedIn" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <!-- Product Links -->
+                <div>
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Product</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/features" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Features</a></li>
+                        <li><a href="/how-it-works" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">How It Works</a></li>
+                        <li><a href="/pricing" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Pricing</a></li>
+                        <li><a href="/faq" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Company Links -->
+                <div>
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Company</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/about" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">About Us</a></li>
+                        <li><a href="/blog" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Blog</a></li>
+                        <li><a href="/careers" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Careers</a></li>
+                        <li><a href="/contact" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Legal Links (Root-relative paths) -->
+                <div class="lg:col-span-2">
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Legal</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/privacy-policy" class="text-primary-600 dark:text-primary-400 font-medium no-underline">Privacy Policy</a></li>
+                        <li><a href="/terms-of-service" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Terms of Service</a></li>
+                        <li><a href="/cookie-policy" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Cookie Policy</a></li>
+                        <li><a href="/GDPR-complianceS" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">GDPR Compliance</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 text-center">
+                &copy; 2025 Trace'N Find. All rights reserved. | A German-Malaysian Institute FYP Project.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button id="backToTop" aria-label="Back to top" class="hover:bg-primary-700 hover:scale-110">
+        <i class="bi bi-arrow-up text-xl"></i>
+    </button>
+    
+    <!-- JS for App Shell & Interactions -->
+    <script src="/public/js/app.js" type="module"></script>
+</body>
+</html>

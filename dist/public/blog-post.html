@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Learn how to find your lost Android phone using Trace'N Find's features.">
+    <title>5 Ways to Find Your Lost Android Phone - Trace'N Find</title>
+    
+    <!-- 
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+    -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          console.warn('Could not apply theme from localStorage:', e);
+        }
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Typography Plugin for prose styling -->
+    <script src="https://cdn.tailwindcss.com/3.3.5?plugin=typography"></script>
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- INTEGRATION FIX: Root-relative path -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                            '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                            '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                        },
+                        indigo: { '500': '#6366f1' },
+                        slate: { '700': '#334155', '800': '#1e293b', '900': '#0f172a' }
+                    },
+                    // Add prose colors for dark mode
+                    typography: ({ theme }) => ({
+                        DEFAULT: {
+                            css: {
+                                '--tw-prose-body': theme('colors.slate[600]'),
+                                '--tw-prose-headings': theme('colors.slate[900]'),
+                                '--tw-prose-lead': theme('colors.slate[700]'),
+                                '--tw-prose-links': theme('colors.primary[600]'),
+                                '--tw-prose-bold': theme('colors.slate[900]'),
+                                '--tw-prose-counters': theme('colors.slate[600]'),
+                                '--tw-prose-bullets': theme('colors.slate[400]'),
+                                '--tw-prose-hr': theme('colors.slate[300]'),
+                                '--tw-prose-quotes': theme('colors.slate[900]'),
+                                '--tw-prose-quote-borders': theme('colors.primary[300]'),
+                                '--tw-prose-captions': theme('colors.slate[700]'),
+                                '--tw-prose-code': theme('colors.slate[900]'),
+                                '--tw-prose-pre-code': theme('colors.slate[100]'),
+                                '--tw-prose-pre-bg': theme('colors.slate[900]'),
+                                '--tw-prose-th-borders': theme('colors.slate[300]'),
+                                '--tw-prose-td-borders': theme('colors.slate[200]'),
+                            },
+                        },
+                        invert: {
+                            css: {
+                                '--tw-prose-body': theme('colors.slate[300]'),
+                                '--tw-prose-headings': theme('colors.white'),
+                                '--tw-prose-lead': theme('colors.slate[400]'),
+                                '--tw-prose-links': theme('colors.primary[400]'),
+                                '--tw-prose-bold': theme('colors.white'),
+                                '--tw-prose-counters': theme('colors.slate[400]'),
+                                '--tw-prose-bullets': theme('colors.slate[600]'),
+                                '--tw-prose-hr': theme('colors.slate[700]'),
+                                '--tw-prose-quotes': theme('colors.slate[100]'),
+                                '--tw-prose-quote-borders': theme('colors.primary[700]'),
+                                '--tw-prose-captions': theme('colors.slate[400]'),
+                                '--tw-prose-code': theme('colors.white'),
+                                '--tw-prose-pre-code': theme('colors.slate[300]'),
+                                '--tw-prose-pre-bg': 'rgb(0 0 0 / 50%)',
+                                '--tw-prose-th-borders': theme('colors.slate[600]'),
+                                '--tw-prose-td-borders': theme('colors.slate[700]'),
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Glassmorphism Navbar Style */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.7); /* slate-200/70 */
+        }
+        
+        .dark .glass-nav {
+            background: rgba(15, 23, 42, 0.7); /* dark:bg-slate-900/70 */
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.7); /* dark:border-slate-700/70 */
+        }
+        
+        /* Navbar shadow on scroll */
+        .scrolled {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Preloader */
+        .preloader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .dark .preloader {
+            background: #0f172a;
+        }
+        .spinner {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid #e0e6fd;
+            border-top-color: #4361ee;
+            animation: spin 1s linear infinite;
+        }
+        .dark .spinner {
+            border-color: #1a2353;
+            border-top-color: #6772f4;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Back to Top */
+        #backToTop {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 9999px;
+            background-color: #4361ee;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            z-index: 40;
+            transform: translateY(100px);
+            opacity: 0;
+        }
+        #backToTop.is-visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 antialiased">
+
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300">
+        <nav class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="/index" class="flex items-center gap-2 no-underline">
+                    <i class="bi bi-geo-alt-fill text-3xl text-primary-600"></i>
+                    <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
+                </a>
+                
+                <!-- Desktop Nav (Paths are root-relative) -->
+                <div class="hidden lg:flex items-center gap-2">
+                    <a href="/index" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Home</a>
+                    <a href="/features" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Features</a>
+                    <a href="/how-it-works" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">How It Works</a>
+                    <a href="/about" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">About Us</a>
+                    <a href="/faq" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">FAQ</a>
+                    <!-- This is the active page -->
+                    <a href="/blog" class="px-3 py-2 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-800 transition-colors">Blog</a>
+                    <a href="/contact" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Contact</a>
+                </div>
+                
+                <!-- Auth Buttons (Paths are root-relative) -->
+                <div class="hidden lg:flex items-center gap-3">
+                    <a href="/login" class="px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">
+                        Login
+                    </a>
+                    <a href="/register" class="px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5 shadow-md hover:shadow-lg">
+                        Sign Up
+                    </a>
+                    <button id="themeToggle" aria-label="Toggle theme" class="theme-toggle w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
+                        <i class="bi bi-moon-fill block dark:hidden"></i>
+                        <i class="bi bi-sun-fill hidden dark:block"></i>
+                    </button>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <div class="lg:hidden flex items-center">
+                    <button id="themeToggleMobile" aria-label="Toggle theme" class="theme-toggle w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
+                        <i class="bi bi-moon-fill block dark:hidden"></i>
+                        <i class="bi bi-sun-fill hidden dark:block"></i>
+                    </button>
+                    <button id="mobileMenuButton" class="inline-flex items-center justify-center p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-slate-800" aria-label="Main menu">
+                        <i class="bi bi-list text-3xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu (Paths are root-relative) -->
+            <div id="mobileMenu" class="hidden lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="/index" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Home</a>
+                    <a href="/features" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Features</a>
+                    <a href="/how-it-works" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">How It Works</a>
+                    <a href="/about" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">About Us</a>
+                    <a href="/faq" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">FAQ</a>
+                    <a href="/blog" class="block px-3 py-2 rounded-md text-base font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:hover:bg-slate-700">Blog</a>
+                    <a href="/contact" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Contact</a>
+                </div>
+                <div class="pt-4 pb-3 border-t border-slate-200 dark:border-slate-700 px-2">
+                    <div class="flex flex-col gap-2">
+                        <a href="/login" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-700">
+                            Login
+                        </a>
+                        <a href="/register" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            Sign Up
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Article Hero Section -->
+        <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-gradient-to-r from-primary-600 to-indigo-500">
+            <div class="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="text-center">
+                    <p class="font-semibold text-primary-200 uppercase tracking-wider">Security</p>
+                    <h1 class="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white mt-4">
+                        5 Ways to Find Your Lost Android Phone
+                    </h1>
+                    <p class="mt-6 text-lg lg:text-xl text-primary-100 max-w-3xl mx-auto">
+                        By Muhammad Idris | Published on November 10, 2025
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Article Content Section -->
+        <section class="py-20 lg:py-32 bg-white dark:bg-slate-900">
+            <div class="container mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <!-- 
+                  The `prose` class from @tailwindcss/typography provides
+                  beautiful, responsive styling for the article content.
+                -->
+                <article class="prose prose-lg lg:prose-xl dark:prose-invert max-w-none">
+                    <p class="lead">Losing your phone is a stressful and frightening experience. Your device contains personal photos, private messages, and sensitive financial data. With Trace'N Find, you have a powerful set of tools to recover your device and protect your data.</p>
+                    
+                    <p>Here are the 5 practical steps you should take immediately when you realize your device is missing.</p>
+
+                    <img src="https://placehold.co/800x400/4361ee/white?text=Trace'N+Find+Dashboard" alt="Dashboard" class="rounded-lg shadow-md">
+
+                    <h2>1. Use the "Ring" Feature Immediately</h2>
+                    <p>Before you panic, check if the phone is just nearby. It's easy for a phone to slip between couch cushions or be left in another room. From your Trace'N Find dashboard:</p>
+                    <ul>
+                        <li>Go to the <strong>Security</strong> panel.</li>
+                        <li>Select your device and click the <strong>"Ring"</strong> button.</li>
+                    </ul>
+                    <p>This will cause your device to play a loud alarm, even if it is on silent mode. This is the fastest way to find a device that's just misplaced nearby.</p>
+                    
+                    <h2>2. Check Your Live Location</h2>
+                    <p>If you can't hear the alarm, the next step is to check its location. Open the <strong>Dashboard</strong> or <strong>Full Map</strong> view. You will see a live pin of your device's last known location. If the device is online, this location will update in real-time. This can help you determine if you left it at a friend's house, at work, or if it's unfortunately on the move.</p>
+
+                    <h2>3. Review Your Location History</h2>
+                    <p>If the device is offline (the battery may have died or it was turned off), its live location won't be available. This is where <strong>Location History</strong> is crucial. </p>
+                    <p>Navigate to the <strong>History</strong> page, select your device, and review the breadcrumb trail of its recent locations. This can help you retrace your steps and identify where you last had it.</p>
+                    
+                    <blockquote>
+                        "The most important step is to act fast. Locking your device and checking its location history immediately can make the difference between recovery and total loss."
+                        <cite>- Trace'N Find Security Team</cite>
+                    </blockquote>
+
+                    <h2>4. Remotely Lock Your Device</h2>
+                    <p>If you believe your device is in an untrusted location or is moving, your top priority is to protect your data. Go to the <strong>Security</strong> panel and click <strong>"Lock Device"</strong>. This will instantly lock the screen with your passcode, preventing anyone from accessing your apps, messages, or photos.</p>
+
+                    <h2>5. When to use "Remote Wipe"</h2>
+                    <p>This is the last resort. If you have accepted that your device is not recoverable, but you need to protect the sensitive data on it (like banking apps or company emails), you must use the <strong>"Remote Wipe"</strong> feature.</p>
+                    <p>This command will perform a factory reset on your device, permanently erasing all user data. This action is **irreversible**, but it guarantees that your personal information will not fall into the wrong hands.</p>
+                    
+                    <h2>Conclusion</h2>
+                    <p>By following these steps, you maximize your chances of recovering your device and ensure your data stays private. Remember to set up Trace'N Find on all your devices *before* you lose them!</p>
+
+                    <div class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-700">
+                        <a href="/blog" class="inline-flex items-center text-lg font-medium text-primary-600 dark:text-primary-400 hover:underline">
+                            <i class="bi bi-arrow-left mr-2"></i>
+                            Back to all articles
+                        </a>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+        <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8">
+                <!-- Footer Brand -->
+                <div class="md:col-span-4 lg:col-span-2">
+                    <a href="/index" class="flex items-center gap-2 no-underline">
+                        <i class="bi bi-geo-alt-fill text-3xl text-primary-600"></i>
+                        <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
+                    </a>
+                    <p class="mt-4 text-slate-600 dark:text-slate-300 max-w-xs">
+                        Advanced device tracking with real-time location and security features.
+                    </p>
+                    <div class="mt-6 flex gap-4">
+                        <a href="#" aria-label="Follow us on Facebook" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i></a>
+                        <a href="#" aria-label="Follow us on Twitter" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-twitter"></i></a>
+                        <a href="#" aria-label="Follow us on Instagram" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i></a>
+                        <a href="#" aria-label="Follow us on LinkedIn" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <!-- Product Links -->
+                <div>
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Product</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/features" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Features</a></li>
+                        <li><a href="/how-it-works" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">How It Works</a></li>
+                        <li><a href="/pricing" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Pricing</a></li>
+                        <li><a href="/faq" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Company Links -->
+                <div>
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Company</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/about" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">About Us</a></li>
+                        <li><a href="/blog" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Blog</a></li>
+                        <li><a href="/careers" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Careers</a></li>
+                        <li><a href="/contact" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Legal Links -->
+                <div class="lg:col-span-2">
+                    <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Legal</h5>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="/privacy-policy" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Privacy Policy</a></li>
+                        <li><a href="/terms-of-service" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Terms of Service</a></li>
+                        <li><a href="/cookie-policy" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">Cookie Policy</a></li>
+                        <li><a href="/GDPR-compliance" class="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors no-underline">GDPR Compliance</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 text-center">
+                &copy; 2025 Trace'N Find. All rights reserved. | A German-Malaysian Institute FYP Project.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button id="backToTop" aria-label="Back to top" class="hover:bg-primary-700 hover:scale-110">
+        <i class="bi bi-arrow-up text-xl"></i>
+    </button>
+    
+    <!-- 
+      SCALABILITY & INTEGRATION FIX:
+      This page links to the central `app.js` file, which contains
+      the necessary logic for the mobile menu, theme toggle, and animations.
+    -->
+    <script src="/public/js/app.js" type="module"></script>
+</body>
+</html>

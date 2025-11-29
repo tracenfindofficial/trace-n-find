@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Add New Device - Trace'N Find</title>
+    <!--
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+    -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          console.warn('Could not apply theme from localStorage:', e);
+        }
+      })();
+    </script>
+
+    <!-- Tailwind CSS (Loaded by app-shell.js) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Bootstrap Icons (Loaded by app-shell.js) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Google Fonts (Loaded by app-shell.js) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- INTEGRATION FIX: Root-relative path -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+    
+
+    <!-- Custom Tailwind Config (from app-shell.js) -->
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                            '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                            '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                        },
+                        success: { '500': '#10b981' },
+                        warning: { '500': '#f59e0b' },
+                        danger: { '500': '#ef4444' },
+                        info: { '500': '#3b82f6' },
+                        'bg-primary': 'var(--color-bg-primary)',
+                        'bg-card': 'var(--color-bg-card)',
+                        'bg-sidebar': 'var(--color-bg-sidebar)',
+                        'text-primary': 'var(--color-text-primary)',
+                        'text-secondary': 'var(--color-text-secondary)',
+                        'border-color': 'var(--color-border)',
+                        'dark-bg-primary': '#0f172a',
+                        'dark-bg-card': '#1e293b',
+                        'dark-bg-sidebar': 'rgba(30, 41, 59, 0.8)',
+                        'dark-text-primary': '#f1f5f9',
+                        'dark-text-secondary': '#94a3b8',
+                        'dark-border-color': '#334155',
+                    },
+                    spacing: {
+                        'sidebar': '280px',
+                        'sidebar-mini': '80px',
+                        'header': '70px',
+                    },
+                    boxShadow: { 'soft': '0 4px 12px rgba(0, 0, 0, 0.05)', },
+                    animation: { 'fadeIn': 'fadeIn 0.5s ease-out forwards' },
+                    keyframes: {
+                        fadeIn: {
+                            'from': { opacity: '0', transform: 'translateY(10px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Base App Styles (from app-shell.js) -->
+    <style>
+        :root {
+            --color-primary-rgb: 67, 97, 238;
+            --color-primary: rgb(var(--color-primary-rgb));
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-info: #3b82f6;
+            --color-bg-primary: #f1f5f9;
+            --color-bg-card: #ffffff;
+            --color-bg-sidebar: rgba(255, 255, 255, 0.8);
+            --color-text-primary: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --font-family-sans: 'Inter', sans-serif;
+            --font-family-heading: 'Poppins', sans-serif;
+            --sidebar-width-full: 280px;
+            --sidebar-width-mini: 80px;
+            --header-height: 70px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        [data-theme="dark"] {
+            --color-bg-primary: #0f172a;
+            --color-bg-card: #1e293b;
+            --color-bg-sidebar: rgba(30, 41, 59, 0.8);
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #94a3b8;
+            --color-border: #334155;
+        }
+        body { font-family: var(--font-family-sans); background-color: var(--color-bg-primary); color: var(--color-text-primary); }
+        .sidebar { 
+            width: var(--sidebar-width-full); 
+            background-color: var(--color-bg-sidebar); 
+            border-right: 1px solid var(--color-border); 
+            transition: width 0.3s ease, transform 0.3s ease; 
+            /* LINTER FIX: Swapped prefix order */
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        .sidebar-header { height: var(--header-height); border-bottom: 1px solid var(--color-border); }
+        .sidebar-nav { flex-grow: 1; padding: 1rem 0.75rem; overflow-y: auto; overflow-x: hidden; }
+        .sidebar-footer { border-top: 1px solid var(--color-border); }
+        .sidebar-mini { width: var(--sidebar-width-mini); }
+        .sidebar-mini .brand-text, .sidebar-mini .nav-link-text, .sidebar-mini .user-info, .sidebar-mini .logout-text { opacity: 0; visibility: hidden; width: 0; transition: opacity 0.1s ease; }
+        .sidebar-mini .nav-link, .sidebar-mini .user-profile { justify-content: center; }
+        .sidebar-mini .nav-link-icon { margin-right: 0; font-size: 1.5rem; }
+        .sidebar-mini .logout-button { justify-content: center; }
+        .sidebar-mini .logo i { margin-right: 0; }
+        .sidebar-mini .nav-link { position: relative; }
+        .sidebar-mini .nav-link .nav-link-text { 
+            position: absolute; 
+            left: 100%; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            margin-left: 1rem; 
+            background-color: var(--color-bg-card); 
+            color: var(--color-text-primary); 
+            padding: 0.5rem 1rem; 
+            border-radius: 0.5rem; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); 
+            border: 1px solid var(--color-border); 
+            white-space: nowrap; 
+            opacity: 0; 
+            visibility: hidden; 
+            transition: opacity 0.2s ease, visibility 0.2s ease; 
+            pointer-events: none; 
+        }
+        .sidebar-mini .nav-link:hover .nav-link-text { opacity: 1; visibility: visible; transition-delay: 0.2s; }
+        .main-content { margin-left: var(--sidebar-width-full); transition: margin-left 0.3s ease; }
+        .sidebar-mini + .main-content { margin-left: var(--sidebar-width-mini); }
+        .header { 
+            height: var(--header-height); 
+            background-color: var(--color-bg-card); /* No transparency for this page's header */
+            /* LINTER FIX: Swapped prefix order */
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--color-border); 
+        }
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        /* LINTER FIX: ID changed to app-preloader */
+        #app-preloader { 
+            position: fixed; 
+            inset: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background-color: var(--color-bg-primary); 
+            z-index: 9999; 
+            transition: opacity 0.3s ease; 
+        }
+        .spinner { width: 48px; height: 48px; border: 4px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-col; gap: 0.75rem; }
+        .toast { width: 350px; max-width: 90vw; padding: 1rem 1.25rem; border-radius: 0.75rem; background: var(--color-bg-card); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid var(--color-border); border-left-width: 4px; display: flex; align-items: flex-start; gap: 0.75rem; opacity: 0; transform: translateX(100%); transition: all 0.4s ease-in-out; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast-success { border-left-color: var(--color-success); } .toast-success .toast-icon { color: var(--color-success); }
+        .toast-error { border-left-color: var(--color-danger); } .toast-error .toast-icon { color: var(--color-danger); }
+        .toast-info { border-left-color: var(--color-info); } .toast-info .toast-icon { color: var(--color-info); }
+        .toast-icon { font-size: 1.25rem; margin-top: 0.125rem; }
+        .toast-content { flex: 1; } .toast-title { font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-primary); }
+        .toast-message { font-size: 0.9rem; color: var(--color-text-secondary); }
+        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); 
+            /* LINTER FIX: Swapped prefix order */
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px); 
+            z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        /* LINTER FIX: Replaced 'max-w' with 'max-width' */
+        .modal-content { background-color: var(--color-bg-card); border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); width: 90%; max-width: 500px; padding: 1.5rem; transform: scale(0.95); opacity: 0; transition: all 0.3s ease; }
+        .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
+        
+        /* Page-Specific Styles */
+        .step-card {
+            transition: all 0.2s ease-in-out;
+            background-color: var(--color-bg-primary);
+        }
+        .step-card.selected {
+            border-color: var(--color-primary);
+            background-color: rgba(var(--color-primary-rgb), 0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.2);
+        }
+        .step-card:not(.selected):hover {
+            transform: translateY(-2px);
+            border-color: var(--color-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        [data-theme="dark"] .step-card {
+            background-color: var(--color-bg-primary);
+        }
+        [data-theme="dark"] .step-card:not(.selected):hover {
+            border-color: var(--color-border);
+        }
+
+        
+        .form-step { display: none; }
+        .form-step.active { display: block; animation: fadeIn 0.5s ease-out; }
+        
+        /* Progress Bar */
+        .progress-bar-bg { background-color: var(--color-border); }
+        .progress-bar-fill {
+            background-color: var(--color-primary);
+            transition: width 0.5s ease-in-out;
+        }
+        .step-dot {
+            background-color: var(--color-border);
+            color: var(--color-text-secondary);
+            transition: all 0.5s ease-in-out;
+        }
+        .step-dot.active {
+            background-color: var(--color-primary);
+            color: white;
+            transform: scale(1.1);
+        }
+        .step-dot.complete {
+            background-color: var(--color-success);
+            color: white;
+        }
+
+        /* Form Switch (Tailwind style) */
+        .form-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px; /* w-11 */
+            height: 24px; /* h-6 */
+        }
+        .form-switch-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .form-switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-border);
+            transition: .4s;
+            border-radius: 9999px;
+        }
+        .form-switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; /* h-4.5 */
+            width: 18px; /* w-4.5 */
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        .form-switch-input:checked + .form-switch-slider {
+            background-color: var(--color-primary);
+        }
+        .form-switch-input:checked + .form-switch-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Button Spinner */
+        .button-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Base Button Styles */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            color: white;
+            background-color: var(--color-primary);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #3a50d0; /* primary-700 */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+        }
+        .btn-primary:disabled {
+            background-color: var(--color-text-secondary);
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-bg-primary);
+            border-color: var(--color-text-secondary);
+        }
+        [data-theme="dark"] .btn-secondary {
+             background-color: var(--color-bg-card);
+             border-color: var(--color-border);
+             color: var(--color-text-primary);
+        }
+        [data-theme="dark"] .btn-secondary:hover {
+             background-color: var(--color-border);
+        }
+        
+        .btn-success {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            color: white;
+            background-color: var(--color-success);
+            transition: all 0.3s ease;
+        }
+        .btn-success:hover {
+            background-color: #0e9674; /* A bit darker success */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .btn-success:disabled {
+            background-color: var(--color-text-secondary);
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+    </style>
+</head>
+<body class="h-full flex bg-bg-primary dark:bg-dark-bg-primary text-text-primary dark:text-dark-text-primary font-sans">
+
+    <!-- 
+      CRITICAL BUG FIX: 
+      The ID has been changed from "preloader" to "app-preloader"
+      to match what app-shell.js is looking for.
+    -->
+    <div id="app-preloader" class="preloader">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Toast Container (from app-shell.js) -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <!-- Confirmation Modal (from app-shell.js) -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
+                <button id="modalClose" aria-label="Close modal" class="text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger-500">&times;</button>
+            </div>
+            <p id="modalMessage" class="text-text-secondary dark:text-dark-text-secondary mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modalCancel" class="btn-secondary py-2 px-4 rounded-lg font-semibold">Cancel</button>
+                <button id="modalConfirm" class="btn-danger py-2 px-4 rounded-lg font-semibold text-white">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar (from app-shell.js) -->
+    <aside id="sidebar" class="sidebar fixed top-0 left-0 h-full flex-col hidden lg:flex -translate-x-full lg:translate-x-0">
+        <!-- Sidebar Header -->
+        <div class="sidebar-header flex-shrink-0 flex items-center justify-between h-[var(--header-height)] px-6">
+            <!-- INTEGRATION FIX: Root-relative path -->
+            <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary no-underline overflow-hidden whitespace-nowrap">
+                <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary p-2 rounded-lg"></i>
+                <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
+            </a>
+            <!-- ACCESSIBILITY FIX: Added aria-label -->
+            <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all text-xl">
+                <i class="bi bi-chevron-bar-left"></i>
+            </button>
+        </div>
+
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar-nav">
+            <ul class="flex flex-col gap-1">
+                <!-- INTEGRATION FIX: Root-relative paths -->
+                <li>
+                    <a href="/dashboard" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <!-- This is the active page -->
+                    <a href="/devices" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary bg-primary-light dark:bg-dark-bg-card dark:text-primary-400 font-medium no-underline">
+                        <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Devices</span>
+                        <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs">...</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/map-view" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-map nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Map View</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Geofencing</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/security-actions" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-shield-lock nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Security</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/location-history" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-clock-history nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">History</span>
+                    </a>
+                </li>
+                 <li>
+                    <a href="/backup" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-database-down nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Backup</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/settings" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-gear nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Settings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/support" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-question-circle nav-link-icon text-lg w-8"></i>
+                        <span class="nav-link-text">Support</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer px-6 py-4">
+            <div class="user-profile flex items-center gap-3 mb-4">
+                <img id="userAvatar" src="https://placehold.co/40x40/6772f4/white?text=U" alt="User Avatar" class="user-avatar-display w-10 h-10 rounded-full flex-shrink-0">
+                <div class="user-info overflow-hidden">
+                    <div id="userName" class="user-name-display font-semibold text-text-primary dark:text-dark-text-primary truncate">Loading...</div>
+                    <div id="userEmail" class="user-role text-sm text-text-secondary dark:text-dark-text-secondary truncate"></div>
+                </div>
+            </div>
+            <!-- ACCESSIBILITY FIX: Added aria-label -->
+            <button id="logoutButton" aria-label="Logout" class="logout-button w-full flex items-center gap-3 py-3 px-4 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all">
+                <i class="bi bi-box-arrow-right nav-link-icon text-lg w-8"></i>
+                <span class="logout-text font-medium">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content flex-1 flex flex-col h-screen overflow-y-auto">
+        <!-- Header (from app-shell.js) -->
+        <header class="header sticky top-0 z-[99] flex items-center justify-between px-6">
+            <!-- Mobile Menu Toggle -->
+            <!-- ACCESSIBILITY FIX: Added aria-label -->
+            <button id="mobileMenuToggle" aria-label="Open navigation menu" class="lg:hidden text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary">
+                <i class="bi bi-list"></i>
+            </button>
+            <!-- Header Title (Dynamic) -->
+            <h1 id="page-title" class="hidden md:block text-2xl font-heading font-bold text-text-primary dark:text-dark-text-primary">
+                Add New Device
+            </h1>
+            <!-- Header Actions (Search, Notifications, User) -->
+            <div class="flex items-center gap-4 ml-auto">
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
+                <button id="themeToggle" aria-label="Toggle theme" class="text-xl text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all">
+                    <!-- 
+                      BUG FIX: 
+                      Removed conflicting Tailwind classes (block, hidden, dark:block, dark:hidden).
+                      Simplified to a single default icon. 
+                      The app-shell.js script is responsible for dynamically changing this icon.
+                      This prevents the "double image" bug.
+                    -->
+                    <i class="bi bi-moon-fill"></i>
+                </button>
+                <div class="relative">
+                    <!-- INTEGRATION FIX: Root-relative path -->
+                    <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all">
+                        <i class="bi bi-bell"></i>
+                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                    </a>
+                </div>
+                <div class="relative">
+                    <!-- ACCESSIBILITY FIX: Added aria-label -->
+                    <button id="userMenuToggle" aria-label="Open user menu" class="block w-10 h-10 rounded-full hover:ring-2 hover:ring-primary transition-all">
+                        <img id="userMenuToggleImg" src="https://placehold.co/40x40/6772f4/white?text=U" alt="User Avatar" class="user-avatar-display w-10 h-10 rounded-full">
+                    </button>
+                    <!-- User Dropdown -->
+                    <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
+                        <!-- INTEGRATION FIX: Root-relative paths -->
+                        <a href="/profile" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary">Profile</a>
+                        <a href="/settings" classs="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary">Settings</a>
+                        <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger-500 hover:bg-red-50 dark:hover:bg-red-900/30">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow p-6" id="main-content">
+            <div class="max-w-4xl mx-auto">
+                
+                <!-- Page Header -->
+                <div class="mb-6">
+                    <!-- This title is dynamic and will be changed by JS in edit mode -->
+                    <h1 id="page-title-main" class="text-3xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Register a New Device</h1>
+                    <p class="text-lg text-text-secondary dark:text-dark-text-secondary mt-1">Follow these steps to protect your device.</p>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between text-sm font-medium text-text-secondary dark:text-dark-text-secondary">
+                        <span id="step-name-1" class="text-primary-600 dark:text-primary-400 font-semibold">Device Type</span>
+                        <span id="step-name-2">Details</span>
+                        <span id="step-name-3">Security</span>
+                    </div>
+                    <div class="flex items-center mt-2">
+                        <div id="step-dot-1" class="step-dot active w-8 h-8 rounded-full flex items-center justify-center font-bold z-10">1</div>
+                        <div class="flex-1 h-1 progress-bar-bg dark:bg-dark-border-color">
+                            <div id="progress-bar-1" class="h-full progress-bar-fill w-0"></div>
+                        </div>
+                        <div id="step-dot-2" class="step-dot w-8 h-8 rounded-full flex items-center justify-center font-bold z-10">2</div>
+                        <div class="flex-1 h-1 progress-bar-bg dark:bg-dark-border-color">
+                            <div id="progress-bar-2" class="h-full progress-bar-fill w-0"></div>
+                        </div>
+                        <div id="step-dot-3" class="step-dot w-8 h-8 rounded-full flex items-center justify-center font-bold z-10">3</div>
+                    </div>
+                </div>
+
+                <!-- Form Steps Container -->
+                <div class="bg-bg-card dark:bg-dark-bg-card shadow-soft rounded-2xl border border-border-color dark:border-dark-border-color p-6 sm:p-10 relative">
+                    <form id="addDeviceForm" onsubmit="event.preventDefault();">
+                        
+                        <!-- Step 1: Device Type -->
+                        <div id="step-1" class="form-step active">
+                            <h2 class="text-2xl font-heading font-semibold mb-6 text-text-primary dark:text-dark-text-primary">1. What type of device are you adding?</h2>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="step-card text-center p-6 border-2 border-border-color dark:border-dark-border-color rounded-2xl cursor-pointer" data-type="Phone">
+                                    <i class="bi bi-phone-fill text-5xl text-primary-600"></i>
+                                    <p class="font-semibold mt-3 text-text-primary dark:text-dark-text-primary">Phone</p>
+                                </div>
+                                <div class="step-card text-center p-6 border-2 border-border-color dark:border-dark-border-color rounded-2xl cursor-pointer" data-type="Tablet">
+                                    <i class="bi bi-tablet-landscape-fill text-5xl text-info-500"></i>
+                                    <p class="font-semibold mt-3 text-text-primary dark:text-dark-text-primary">Tablet</p>
+                                </div>
+                                <div class="step-card text-center p-6 border-2 border-border-color dark:border-dark-border-color rounded-2xl cursor-pointer" data-type="Laptop">
+                                    <i class="bi bi-laptop-fill text-5xl text-success-500"></i>
+                                    <p class="font-semibold mt-3 text-text-primary dark:text-dark-text-primary">Laptop</p>
+                                </div>
+                                <div class="step-card text-center p-6 border-2 border-border-color dark:border-dark-border-color rounded-2xl cursor-pointer" data-type="Watch">
+                                    <i class="bi bi-smartwatch text-5xl text-warning-500"></i>
+                                    <p class="font-semibold mt-3 text-text-primary dark:text-dark-text-primary">Watch</p>
+                                </div>
+                            </div>
+                            <input type="hidden" id="deviceType" required>
+                            <p id="device-type-error" class="text-danger-500 text-sm mt-4 text-center hidden">Please select a device type to continue.</p>
+                            <div class="flex justify-end mt-8">
+                                <button type="button" id="btn-next-step-2" class="btn-primary" disabled>
+                                    Next: Device Details <i class="bi bi-arrow-right ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Device Details -->
+                        <div id="step-2" class="form-step">
+                            <h2 class="text-2xl font-heading font-semibold mb-6 text-text-primary dark:text-dark-text-primary">2. Device Details</h2>
+                            
+                            <!-- Quick Setup -->
+                            <div class="mb-6 p-6 border-2 border-dashed border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 rounded-2xl text-center">
+                                <i class="bi bi-qr-code-scan text-5xl text-primary-600 dark:text-primary-400"></i>
+                                <h3 class="font-semibold text-lg text-text-primary dark:text-dark-text-primary mt-2">Quick Setup</h3>
+                                <p class="text-text-secondary dark:text-dark-text-secondary text-sm mb-3">Scan the QR code in your Trace'N Find mobile app to sync instantly.</p>
+                                <button type="button" id="btn-scan-qr" class="btn-secondary text-sm">
+                                    <i class="bi bi-camera-video-fill mr-2"></i> Open Scanner (Demo)
+                                </button>
+                                <p class="text-xs text-text-secondary dark:text-dark-text-secondary mt-3">Or, enter details manually below.</p>
+                            </div>
+                            
+                            <!-- Manual Form -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="deviceName" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Device Name</label>
+                                    <input type="text" id="deviceName" class="w-full p-3 rounded-lg border border-border-color dark:border-dark-border-color bg-bg-primary dark:bg-dark-bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., My Personal Phone" required>
+                                </div>
+                                <div>
+                                    <label for="deviceModel" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Model</label>
+                                    <input type="text" id="deviceModel" class="w-full p-3 rounded-lg border border-border-color dark:border-dark-border-color bg-bg-primary dark:bg-dark-bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g., Samsung Galaxy S23" required>
+                                </div>
+                                <div>
+                                    <label for="deviceSerial" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Serial Number (Optional)</label>
+                                    <input type="text" id="deviceSerial" class="w-full p-3 rounded-lg border border-border-color dark:border-dark-border-color bg-bg-primary dark:bg-dark-bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Find in device settings">
+                                </div>
+                                <div>
+                                    <label for="deviceOS" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Operating System</label>
+                                    <select id="deviceOS" class="w-full p-3 rounded-lg border border-border-color dark:border-dark-border-color bg-bg-primary dark:bg-dark-bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                        <option value="Android">Android</option>
+                                        <option value="Windows">Windows</option>
+                                        <option value="iOS">iOS (Coming Soon)</option>
+                                        <option value="macOS">macOS (Coming Soon)</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between mt-8">
+                                <button type="button" id="btn-back-step-1" class="btn-secondary">
+                                    <i class="bi bi-arrow-left mr-2"></i> Back
+                                </button>
+                                <button type="button" id="btn-next-step-3" class="btn-primary">
+                                    Next: Security <i class="bi bi-arrow-right ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Security -->
+                        <div id="step-3" class="form-step">
+                            <h2 class="text-2xl font-heading font-semibold mb-6 text-text-primary dark:text-dark-text-primary">3. Security Options</h2>
+                            <p class="text-text-secondary dark:text-dark-text-secondary mb-6">Configure the security features you want to enable for this device. These can be changed later.</p>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between p-4 border border-border-color dark:border-dark-border-color rounded-lg">
+                                    <label for="enableTracking" class="flex flex-col cursor-pointer">
+                                        <span class="font-semibold text-text-primary dark:text-dark-text-primary">Enable Location Tracking</span>
+                                        <span class="text-sm text-text-secondary dark:text-dark-text-secondary">Allows real-time tracking of this device.</span>
+                                    </label>
+                                    <label class="form-switch">
+                                        <input class="form-switch-input" type="checkbox" id="enableTracking" checked>
+                                        <span class="form-switch-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 border border-border-color dark:border-dark-border-color rounded-lg">
+                                    <label for="enableRemoteLock" class="flex flex-col cursor-pointer">
+                                        <span class="font-semibold text-text-primary dark:text-dark-text-primary">Enable Remote Lock</span>
+                                        <span class="text-sm text-text-secondary dark:text-dark-text-secondary">Allows you to lock this device from your dashboard.</span>
+                                    </label>
+                                    <label class="form-switch">
+                                        <input class="form-switch-input" type="checkbox" id="enableRemoteLock" checked>
+                                        <span class="form-switch-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="flex items-center justify-between p-4 border border-border-color dark:border-dark-border-color rounded-lg">
+                                    <label for="enableDataWipe" class="flex flex-col cursor-pointer">
+                                        <span class="font-semibold text-text-primary dark:text-dark-text-primary">Enable Remote Data Wipe</span>
+                                        <span class="text-sm text-text-secondary dark:text-dark-text-secondary">Allows you to erase all data from this device.</span>
+                                    </label>
+                                    <label class="form-switch">
+                                        <input class="form-switch-input" type="checkbox" id="enableDataWipe" checked>
+                                        <span class="form-switch-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between mt-8">
+                                <button type="button" id="btn-back-step-2" class="btn-secondary">
+                                    <i class="bi bi-arrow-left mr-2"></i> Back
+                                </button>
+                                <button type="submit" id="btn-add-device" class="btn-success">
+                                    <span class="button-text">
+                                        <i class="bi bi-check-circle-fill mr-2"></i> Add Device
+                                    </span>
+                                    <span class="button-spinner hidden"></span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                    </form>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <!-- 
+      ======================================================================
+      JAVASCRIPT
+      ====================================================================== 
+    -->
+    
+    <!-- 
+      INTEGRATION FIX: All paths are now root-relative.
+      PERFORMANCE FIX: No libraries are loaded here; app-shell.js handles it.
+    -->
+    
+    <!-- app-shell.js: Handles global logic -->
+    <script src="/app/js/app-shell.js" type="module"></script>
+    
+    <!-- add-device-logic.js: Handles logic *only* for this page. -->
+    <script src="/app/js/add-device-logic.js" type="module"></script>
+
+</body>
+</html>
