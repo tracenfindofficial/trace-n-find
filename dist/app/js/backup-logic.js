@@ -12,6 +12,7 @@ import {
     addDoc,
     deleteDoc,
     setDoc, 
+    updateDoc, 
     writeBatch,
     serverTimestamp,
     orderBy,
@@ -151,15 +152,15 @@ function renderBackupList() {
         
         // Data indicators
         const hasProfile = backup.hasProfile;
-        const type = backup.type || 'full'; // 'contact_only' or 'full'
+        const type = backup.type || 'full'; 
         
         let detailsText = "";
-        let iconClass = "bi-hdd-network"; // Default icon
+        let iconClass = "bi-hdd-network"; 
 
-        if (type === 'contact_only' || (hasProfile && !backup.deviceCount)) {
-            // Contact Only Backup
+        if (type === 'contact_only') {
+            // New Contact Only Backup
             detailsText = `<span class="text-success font-medium"><i class="bi bi-person-check-fill"></i> Contact Information Only</span>`;
-            iconClass = "bi-person-badge-fill";
+            iconClass = "bi-person-rolodex";
         } else {
             // Legacy/Full Backup
             const deviceCount = backup.deviceCount || 0;
@@ -196,39 +197,48 @@ function renderBackupList() {
 
 /**
  * Creates a backup of CONTACT INFORMATION ONLY.
- * Ignores devices and geofences arrays.
+ * 1. Fetches Profile/Settings (where contact info lives).
+ * 2. Saves Snapshot to 'backups' collection.
+ * 3. Updates 'profile/settings' pending_action to 'backup_complete'.
  */
 async function createBackup(userId) {
     setLoadingState(elements.createBackupBtn, true);
     
     try {
-        // 1. Fetch ONLY Profile/Contact Information
         const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
         const profileSnapshot = await getDoc(profileRef);
 
         const backupData = {
-            devices: [],   // Explicitly empty
-            geofences: [], // Explicitly empty
+            devices: [],   // Explicitly ignore devices
+            geofences: [], // Explicitly ignore geofences
             profile: profileSnapshot.exists() ? profileSnapshot.data() : null
         };
 
         if (!backupData.profile) {
-            showToast('Warning', 'No profile data found to backup.', 'warning');
+            showToast('Warning', 'No contact information found to backup.', 'warning');
             return;
         }
 
-        // 2. Save backup metadata and data
+        // 1. Create the Backup Document
         const backupsRef = collection(fbDB, 'user_data', userId, 'backups');
         await addDoc(backupsRef, {
             createdAt: serverTimestamp(),
             deviceCount: 0, 
             geofenceCount: 0,
             hasProfile: true,
-            type: 'contact_only', // Tag specifically as contact only
+            type: 'contact_only', // Explicit type
             data: JSON.stringify(backupData), 
         });
 
-        showToast('Success', 'Contact Information Snapshot created.', 'success');
+        // 2. Update Pending Action Status
+        // This signals to listeners that the backup process is finished
+        await setDoc(profileRef, { 
+            pending_action: 'backup_complete',
+            last_backup: serverTimestamp() 
+        }, { merge: true });
+
+        showToast('Success', 'Contact info saved & backup complete.', 'success');
+
     } catch (error) {
         console.error("Error creating backup:", error);
         showToast('Error', 'Could not create backup.', 'error');
@@ -252,7 +262,6 @@ function handleRestoreUpload(e, userId) {
     reader.onload = (event) => {
         try {
             const backupData = JSON.parse(event.target.result);
-            // Relaxed validation: Allow if at least profile exists
             if (!backupData.devices && !backupData.profile) {
                 throw new Error("Invalid backup file format.");
             }
@@ -283,23 +292,19 @@ function handleRestore(backupId, userId) {
     }
 }
 
-/**
- * Shows a confirmation modal and executes the restore.
- * Fixed the signature of showModal to ensure callbacks work.
- */
 function confirmRestore(backupData, userId, buttonToReset = null) {
     const hasProfile = !!backupData.profile;
     const isContactOnly = (!backupData.devices || backupData.devices.length === 0);
     
     let title = "Restore Contact Info?";
-    let msg = "Are you sure you want to restore your <strong>Contact Information & Settings</strong>?";
+    let msg = "Are you sure you want to restore your <strong>Contact Information</strong>?";
     
     if (!isContactOnly) {
         title = "Restore Full Backup?";
         msg = `This will overwrite <strong>${backupData.devices.length} devices</strong> and settings. <br><span class="text-warning">Warning: Current data will be replaced.</span>`;
     }
 
-    // CORRECTED SHOWMODAL SIGNATURE: (title, message, type, confirmCallback, cancelCallback)
+    // Pass correct arguments to showModal (title first)
     showModal(
         title,
         msg,
@@ -311,13 +316,13 @@ function confirmRestore(backupData, userId, buttonToReset = null) {
             try {
                 const batch = writeBatch(fbDB);
                 
-                // 1. Restore Profile (Priority)
+                // 1. Restore Profile (Contact Info)
                 if (backupData.profile) {
                     const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
                     batch.set(profileRef, backupData.profile, { merge: true });
                 }
 
-                // 2. Restore devices/geofences ONLY if they exist in backup
+                // 2. Restore devices/geofences (Only if present in legacy backups)
                 if (backupData.devices && backupData.devices.length > 0) {
                     backupData.devices.forEach(device => {
                         const docRef = doc(fbDB, 'user_data', userId, 'devices', device.id);
@@ -332,6 +337,7 @@ function confirmRestore(backupData, userId, buttonToReset = null) {
                 }
 
                 await batch.commit();
+                
                 showToast('Success', 'Data restored successfully.', 'success');
 
             } catch (error) {
@@ -342,6 +348,7 @@ function confirmRestore(backupData, userId, buttonToReset = null) {
             }
         },
         () => {
+            // Cancel callback
             if (buttonToReset) setLoadingState(buttonToReset, false, true);
         }
     );
@@ -379,10 +386,9 @@ function handleDownload(backupId) {
 
 /**
  * Deletes a backup from the history.
- * FIXED: Corrected showModal signature so delete callback actually runs.
+ * FIXED: Corrected showModal signature (title first) so delete callback runs.
  */
 function handleDelete(backupId, userId) {
-    // CORRECTED SHOWMODAL SIGNATURE: (title, message, type, confirmCallback)
     showModal(
         'Delete Snapshot?',
         'Are you sure you want to delete this backup snapshot? This action cannot be undone.',
