@@ -320,3 +320,57 @@ export function formatDateTime(timestamp) {
         hour12: true
     });
 }
+
+/**
+ * Smoothly animates a Google Maps marker to a new position.
+ * Prevents "teleporting" jitter by sliding the marker over 1 second.
+ * @param {google.maps.Marker} marker - The marker to move.
+ * @param {Object} targetPos - { lat: number, lng: number }
+ */
+export function animateMarkerTo(marker, targetPos) {
+    if (!marker || !targetPos) return;
+
+    const startPos = marker.getPosition();
+    const startLat = startPos.lat();
+    const startLng = startPos.lng();
+    
+    // Calculate difference
+    const changeLat = targetPos.lat - startLat;
+    const changeLng = targetPos.lng - startLng;
+
+    // 1. If distance is large (>1km approx), just snap instantly.
+    // (Prevents markers sliding across the whole country)
+    if (Math.abs(changeLat) > 0.01 || Math.abs(changeLng) > 0.01) {
+        marker.setPosition(targetPos);
+        return;
+    }
+
+    // 2. If distance is tiny (micro-jitter), ignore it.
+    // This stops the pin from "vibrating" when stationary.
+    if (Math.abs(changeLat) < 0.000001 && Math.abs(changeLng) < 0.000001) {
+        return;
+    }
+
+    // 3. Smooth Animation Loop
+    const duration = 1000; // 1 second
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const t = Math.min(elapsed / duration, 1);
+
+        // Ease-out-quad: Starts fast, slows down at the end
+        const ease = t * (2 - t); 
+
+        const newLat = startLat + changeLat * ease;
+        const newLng = startLng + changeLng * ease;
+
+        marker.setPosition({ lat: newLat, lng: newLng });
+
+        if (t < 1) {
+            requestAnimationFrame(animate);
+        }
+    };
+
+    requestAnimationFrame(animate);
+}

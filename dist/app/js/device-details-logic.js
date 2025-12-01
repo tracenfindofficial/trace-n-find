@@ -17,6 +17,7 @@ import {
     where
 } from '/app/js/app-shell.js'; 
 
+import { animateMarkerTo } from '/app/js/shared-utils.js';
 // IMPORT GOOGLE MAP STYLES
 import { mapStyles } from '/public/js/map-tiles.js';
 
@@ -324,6 +325,7 @@ function updateMapMarker(device) {
     if (!map) return;
 
     let lat, lng;
+    
 
     // Robust coordinate parsing
     if (device.location) {
@@ -395,10 +397,11 @@ function updateMapMarker(device) {
             infoWindow.open(map, deviceMarker);
         });
     } else {
-        // Update existing marker
-        deviceMarker.setPosition(position);
-
+        // UPDATE EXISTING
         deviceMarker.setIcon(iconConfig);
+        
+        // REPLACE setPosition WITH ANIMATION
+        animateMarkerTo(deviceMarker, position);
 
         // If info window is open, update content
         if (infoWindow.getMap()) {
@@ -413,7 +416,7 @@ function updateMapMarker(device) {
     }
 
     // Smoothly pan to new location
-    map.panTo(position);
+    // map.panTo(position);
     map.setZoom(16);
 }
 

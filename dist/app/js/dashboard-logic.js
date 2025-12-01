@@ -25,7 +25,7 @@ import {
     SECURITY_BUTTONS,
     sanitizeHTML
 } from '/app/js/app-shell.js';
-
+import { animateMarkerTo } from '/app/js/shared-utils.js';
 // Updated import to match the "mapStyles" export from map-tiles.js
 import { mapStyles } from '/public/js/map-tiles.js';
 
@@ -642,120 +642,175 @@ class DashboardManager {
 
     renderMapMarkers() {
         if (!this.state.map || !this.state.markerCluster) return;
-        
-        // Clear existing markers
-        this.state.markerCluster.clearMarkers();
-        this.state.markers = {};
-        
+
+        const activeDeviceIds = new Set();
         const bounds = new google.maps.LatLngBounds();
         let hasMarkers = false;
 
         this.state.filteredDevices.forEach(device => {
-            // Handle logic for both {lat, lng} and {latitude, longitude} objects
-            let lat = device.location?.lat;
-            let lng = device.location?.lng;
+            activeDeviceIds.add(device.id);
+
+            // Parse Coordinates
+            let lat = device.location?.lat ?? device.location?.latitude;
+            let lng = device.location?.lng ?? device.location?.longitude;
             
-            if (lat === undefined) lat = device.location?.latitude;
-            if (lng === undefined) lng = device.location?.longitude;
-            
-            if (lat === undefined || lng === undefined) return;
-            
-            // Ensure numeric
             lat = parseFloat(lat);
             lng = parseFloat(lng);
+            if (isNaN(lat) || isNaN(lng)) return;
 
             const position = { lat, lng };
             hasMarkers = true;
             bounds.extend(position);
-            
-            // --- 1. DEFINE COLORS ---
-            const colorMap = {
-                online: "#10b981", // Green
-                found: "#10b981",
-                offline: "#64748b", // Gray
-                lost: "#ef4444",
-                warning: "#f59e0b" // Yellow
-            };
+
+            // Icon Setup (Same as before)
+            const colorMap = { online: "#10b981", found: "#10b981", offline: "#64748b", lost: "#ef4444", warning: "#f59e0b" };
             const pinColor = colorMap[device.status] || "#64748b";
 
-            // --- 2. CREATE ANIMATED SVG ICON (High Visibility) ---
             const svgIcon = `
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 80 80">
-                    
                     ${ (device.status !== 'offline') ? `
                     <circle cx="40" cy="40" r="18" fill="#4361ee" stroke="#4361ee" stroke-width="2" opacity="0.6">
                         <animate attributeName="r" from="18" to="40" dur="1.5s" repeatCount="indefinite" />
                         <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" repeatCount="indefinite" />
-                    </circle>
-                    ` : '' }
-
+                    </circle>` : '' }
                     <circle cx="40" cy="40" r="18" fill="${pinColor}" stroke="white" stroke-width="3" />
-                    
                     <g transform="translate(28, 28)">
                         <path fill="white" d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
                     </g>
                 </svg>`;
 
-            // Convert to Data URL
-            const iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon);
+            const iconConfig = {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon),
+                scaledSize: new google.maps.Size(48, 48),
+                anchor: new google.maps.Point(24, 24)
+            };
 
-            // --- 3. CREATE MARKER ---
-            const marker = new google.maps.Marker({
-                position: position,
-                title: device.name,
-                icon: {
-                    url: iconUrl,
-                    // Size is 48x48 to accommodate the wave, but visually the pin looks like 24px
-                    scaledSize: new google.maps.Size(48, 48), 
-                    // Anchor is exactly half of 48 to ensure pin is dead-center
-                    anchor: new google.maps.Point(24, 24) 
-                },
-                // Optimized: false is required for SVG animations to render smoothly in some browsers
-                optimized: false 
-            });
-
-            // InfoWindow Content
-            const lastSeenDate = device.lastSeen && typeof device.lastSeen.toDate === 'function' ? device.lastSeen.toDate() : null;
-            const lastSeen = lastSeenDate ? formatTimeAgo(lastSeenDate) : 'Never';
-            const battery = device.battery || 0;
-
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
-                    <div style="color: black; padding: 5px;">
-                        <h3 style="margin: 0 0 5px 0; font-size: 16px;">${sanitizeHTML(device.name)}</h3>
-                        <p style="margin: 0;">Status: <strong>${device.status}</strong></p>
-                        <p style="margin: 0;">Battery: ${device.battery}%</p>
-                        <p style="margin: 0; font-size: 12px; color: #666;">
-                            Seen: ${formatTimeAgo(device.lastSeen?.toDate ? device.lastSeen.toDate() : new Date())}
-                        </p>
-                    </div>
-                `
-            });
-
-            marker.addListener("click", () => {
-                infoWindow.open(this.state.map, marker);
-                this.selectDevice(device.id, false); // Don't pan again, just select (FALSE is critical to prevent loop)
-            });
-
-            this.state.markerCluster.addMarker(marker);
-            this.state.markers[device.id] = marker;
+            // LOGIC CHANGE: Check if marker exists
+            if (this.state.markers[device.id]) {
+                const marker = this.state.markers[device.id];
+                marker.setIcon(iconConfig); // Update color/status
+                
+                // USE SHARED ANIMATION
+                animateMarkerTo(marker, position); 
+                
+                // Refresh InfoWindow content bindings
+                google.maps.event.clearListeners(marker, 'click');
+                this.attachInfoWindow(marker, device);
+            } else {
+                // Create New
+                const marker = new google.maps.Marker({
+                    position: position,
+                    title: device.name,
+                    icon: iconConfig,
+                    optimized: false,
+                    map: this.state.map
+                });
+                
+                this.attachInfoWindow(marker, device);
+                this.state.markerCluster.addMarker(marker);
+                this.state.markers[device.id] = marker;
+            }
         });
 
-        // Fit bounds if we have markers and no specific device is selected
-        if (hasMarkers && !this.state.currentDeviceId) {
-            // Get the count of active markers on the map
-            const markerCount = Object.keys(this.state.markers).length;
-
-            if (markerCount === 1) {
-                // Single Device: Center map and set a comfortable zoom (e.g., 15)
-                // prevent excessive zooming into a single point
-                this.state.map.setCenter(bounds.getCenter());
-                this.state.map.setZoom(15);
-            } else {
-                // Multiple Devices: Fit bounds to show all of them
-                this.state.map.fitBounds(bounds);
+        // Remove old markers
+        Object.keys(this.state.markers).forEach(id => {
+            if (!activeDeviceIds.has(id)) {
+                const marker = this.state.markers[id];
+                this.state.markerCluster.removeMarker(marker);
+                marker.setMap(null);
+                delete this.state.markers[id];
             }
+        });
+        
+        // Repaint cluster to ensure it catches position updates
+        this.state.markerCluster.repaint();
+
+        // Fit bounds only on first load
+        if (hasMarkers && !this.state.currentDeviceId && !this.mapBoundsInitialized) {
+            this.state.map.fitBounds(bounds);
+            this.mapBoundsInitialized = true;
         }
+    }
+
+    // Helper to keep code clean
+    attachInfoWindow(marker, device) {
+        const content = `
+            <div style="color: black; padding: 5px;">
+                <h3 style="margin: 0 0 5px 0; font-size: 16px;">${sanitizeHTML(device.name)}</h3>
+                <p style="margin: 0;">Status: <strong>${device.status}</strong></p>
+                <p style="margin: 0;">Battery: ${device.battery}%</p>
+            </div>`;
+            
+        const infoWindow = new google.maps.InfoWindow({ content: content });
+        marker.addListener("click", () => {
+            infoWindow.open(this.state.map, marker);
+            this.selectDevice(device.id, false);
+        });
+    }
+
+    // Helper to attach info window (refactored for reuse)
+    attachInfoWindow(marker, device) {
+        const lastSeen = device.lastSeen && typeof device.lastSeen.toDate === 'function' 
+            ? formatTimeAgo(device.lastSeen.toDate()) 
+            : 'Never';
+
+        const infoWindowContent = `
+            <div style="color: black; padding: 5px;">
+                <h3 style="margin: 0 0 5px 0; font-size: 16px;">${sanitizeHTML(device.name)}</h3>
+                <p style="margin: 0;">Status: <strong>${device.status}</strong></p>
+                <p style="margin: 0;">Battery: ${device.battery}%</p>
+                <p style="margin: 0; font-size: 12px; color: #666;">Seen: ${lastSeen}</p>
+            </div>`;
+
+        const infoWindow = new google.maps.InfoWindow({ content: infoWindowContent });
+
+        marker.addListener("click", () => {
+            infoWindow.open(this.state.map, marker);
+            this.selectDevice(device.id, false);
+        });
+    }
+
+    // --- THE MAGIC: Smooth Animation Function ---
+    animateMarkerTo(marker, targetPos) {
+        const startPos = marker.getPosition();
+        const startLat = startPos.lat();
+        const startLng = startPos.lng();
+        const changeLat = targetPos.lat - startLat;
+        const changeLng = targetPos.lng - startLng;
+
+        // If distance is huge (e.g., first load or teleport), just set it instantly
+        if (Math.abs(changeLat) > 0.1 || Math.abs(changeLng) > 0.1) {
+            marker.setPosition(targetPos);
+            return;
+        }
+
+        // If distance is tiny, don't bother animating (stops micro-vibration)
+        if (Math.abs(changeLat) < 0.00001 && Math.abs(changeLng) < 0.00001) {
+            return;
+        }
+
+        const duration = 1000; // 1 second animation
+        const startTime = performance.now();
+
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const t = Math.min(elapsed / duration, 1); // Progress 0 to 1
+
+            // Easing function (Ease-out-quad) for natural movement
+            // t * (2 - t) starts fast and slows down at the end
+            const ease = t * (2 - t); 
+
+            const newLat = startLat + changeLat * ease;
+            const newLng = startLng + changeLng * ease;
+
+            marker.setPosition({ lat: newLat, lng: newLng });
+
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+
+        requestAnimationFrame(animate);
     }
 
     renderDeviceList() {
