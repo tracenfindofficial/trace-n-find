@@ -23,6 +23,8 @@ import {
     PhoneAuthProvider,
     PhoneMultiFactorGenerator,
     RecaptchaVerifier,
+    TotpMultiFactorGenerator, // Add this
+    TotpSecret,               // Add this
     multiFactor 
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 

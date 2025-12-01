@@ -40,7 +40,8 @@ const elements = {
     deleteAccountBtn: document.getElementById('delete-account-btn'),
 
     // Sidebar (for updating user display)
-    sidebarUserName: document.querySelector('.user-name-display'),
+    // FIX: Select ALL elements with this class to ensure header AND sidebar update
+    allUserNames: document.querySelectorAll('.user-name-display'),
     sidebarUserEmail: document.getElementById('userEmail'),
     allUserAvatars: document.querySelectorAll('.user-avatar-display'), // Gets header + sidebar
     
@@ -137,9 +138,9 @@ async function handleSaveProfile(e, userId) {
         appState.currentUser.photoURL = shellAvatarUrl;
 
 
-        // 4. Update UI dynamically
-        if (elements.sidebarUserName) {
-            elements.sidebarUserName.textContent = newName;
+        // 4. Update UI dynamically (FIXED: Update ALL instances)
+        if (elements.allUserNames) {
+            elements.allUserNames.forEach(el => el.textContent = newName);
         }
         // Update all avatars in the shell (header + sidebar)
         elements.allUserAvatars.forEach(img => img.src = shellAvatarUrl);
