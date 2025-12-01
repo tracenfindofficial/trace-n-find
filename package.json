@@ -3,5 +3,10 @@
     "@googlemaps/routeoptimization": "^0.6.0",
     "@tailwindcss/cli": "^4.1.17",
     "tailwindcss": "^4.1.17"
+  },
+  "devDependencies": {
+    "glob": "^13.0.0",
+    "terser": "^5.44.1",
+    "vite": "^7.2.6"
   }
 }
