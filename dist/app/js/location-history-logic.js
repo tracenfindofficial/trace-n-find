@@ -1,4 +1,4 @@
-// --- Trace'N Find Location History Logic ---
+// --- Trace'N Find Location History Logic (FIXED ROUTING) ---
 import { 
     fbDB,
     collection, 
@@ -21,11 +21,9 @@ import { mapStyles } from '/public/js/map-tiles.js';
 
 // --- Global State ---
 let map = null;
-let pathPolyline = null; // Store the Google Maps Polyline fallback
+let historyPolyline = null; // Store the main path
 let markers = []; // Store array of marker objects
 let deviceCache = {};
-let directionsService = null;
-let directionsRenderer = null;
 
 // --- DOM Elements ---
 const elements = {
@@ -48,30 +46,24 @@ const elements = {
 };
 
 /**
- * Force the date input to today's local date.
- * Returns the date string used.
+ * Force the date input to today's local date on load.
  */
 function setDateToToday() {
     const dateInput = document.getElementById('dateFilter');
-    if (dateInput) {
+    if (dateInput && !dateInput.value) {
         // Get local date correctly (handling timezone offset)
         const today = new Date();
         const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
             .toISOString()
             .split('T')[0];
             
-        if (dateInput.value !== localDate) {
-            dateInput.value = localDate;
-            if (elements.dateFilter) elements.dateFilter.value = localDate;
-        }
+        dateInput.value = localDate;
         return localDate;
     }
-    return null;
+    return dateInput ? dateInput.value : null;
 }
 
-setDateToToday();
-window.addEventListener('pageshow', setDateToToday);
-
+// Initialize Auth Waiter
 function waitForAuth(callback) {
     const check = () => {
         if (window.currentUserId && window.librariesLoaded && typeof google !== 'undefined' && mapStyles) {
@@ -80,6 +72,7 @@ function waitForAuth(callback) {
             requestAnimationFrame(check);
         }
     };
+    // Check immediately first
     if (window.currentUserId && window.librariesLoaded && typeof google !== 'undefined') {
         callback(window.currentUserId);
     } else {
@@ -87,18 +80,12 @@ function waitForAuth(callback) {
     }
 }
 
+// --- Main Entry Point ---
 waitForAuth((userId) => {
     initMap();
     setupEventListeners(userId);
     listenForUnreadNotifications(userId);
-
-    let attempts = 0;
-    const dateEnforcer = setInterval(() => {
-        setDateToToday();
-        attempts++;
-        if (attempts >= 10) clearInterval(dateEnforcer);
-    }, 100);
-
+    setDateToToday();
     loadDeviceOptions(userId);
 });
 
@@ -174,6 +161,7 @@ async function loadDeviceOptions(userId) {
         
         if (firstDeviceId && elements.deviceFilter) {
             elements.deviceFilter.value = firstDeviceId;
+            // Load history for the first device automatically
             loadHistoryData(userId);
         }
 
@@ -197,19 +185,6 @@ function initMap() {
         styles: styles,
         mapTypeId: 'roadmap'
     });
-
-    // Initialize Directions Service for "Snap to Road" style routing
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true, // We use our own custom markers
-        preserveViewport: false, // Allow map to fit to route
-        polylineOptions: {
-            strokeColor: "#4361ee",
-            strokeWeight: 5,
-            strokeOpacity: 0.8
-        }
-    });
 }
 
 async function loadHistoryData(userId) {
@@ -218,6 +193,7 @@ async function loadHistoryData(userId) {
 
     if (!deviceId || !dateString) return;
 
+    // Update Header Title
     if (elements.historyTitleHeader) {
         const today = new Date();
         const localToday = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
@@ -247,6 +223,7 @@ async function loadHistoryData(userId) {
             updateStats(0, 0, "0h 0m");
             renderMapMarkers([], deviceId); 
             renderTimeline([]);
+            showToast('Info', 'No history found for this date.', 'info');
             return;
         }
 
@@ -271,24 +248,22 @@ async function loadHistoryData(userId) {
 function updateStats(points, distance, duration) {
     if(elements.statTotalPoints) elements.statTotalPoints.textContent = points;
     if(elements.statTotalDistance) elements.statTotalDistance.textContent = `${distance.toFixed(2)} km`;
-    
     if(elements.statDuration && duration) {
         elements.statDuration.textContent = duration;
     }
 }
 
-// --- ENHANCED MAP RENDERING (Snap to Roads Logic) ---
+// --- FIX: UPDATED ROUTE RENDERING (Use Polyline, not Directions) ---
 function renderMapMarkers(data, currentDeviceId) {
     if (!map) return;
 
     // 1. Clear previous layers
-    if (pathPolyline) {
-        pathPolyline.setMap(null);
-        pathPolyline = null;
+    if (historyPolyline) {
+        historyPolyline.setMap(null);
+        historyPolyline = null;
     }
-    if (directionsRenderer) {
-        directionsRenderer.setDirections({ routes: [] });
-    }
+    
+    // Clear markers
     markers.forEach(m => m.setMap(null));
     markers = [];
 
@@ -320,35 +295,30 @@ function renderMapMarkers(data, currentDeviceId) {
         return;
     }
 
-    // --- CASE B: History Exists ---
+    // --- CASE B: History Exists (Draw Polyline) ---
     const bounds = new google.maps.LatLngBounds();
-    
-    // 1. Filter valid points
-    // We filter out points that are too close to each other (jitter) to smooth the path
     const validPoints = [];
-    let lastPt = null;
     
+    // Filter and collect points
     data.forEach(pt => {
         const latLng = parseLatLng(pt);
-        if (!latLng) return;
-
-        if (!lastPt) {
+        if (latLng) {
             validPoints.push(latLng);
-            lastPt = latLng;
-        } else {
-            // Only add if distance > 10 meters from last point
-            const dist = google.maps.geometry.spherical.computeDistanceBetween(lastPt, latLng);
-            if (dist > 10) {
-                validPoints.push(latLng);
-                lastPt = latLng;
-            }
+            bounds.extend(latLng);
         }
-        bounds.extend(latLng);
     });
 
-    // 2. Draw Route using Directions API (Snap to Road)
     if (validPoints.length > 1) {
-        drawRouteWithDirections(validPoints);
+        // Draw the path using Polyline (Exact tracking)
+        // Note: Directions API is removed because it causes loops/errors on raw GPS data
+        drawPolylinePath(validPoints);
+        
+        // Fit bounds to show whole route
+        map.fitBounds(bounds);
+        
+        // Add padding to bounds
+        const padding = { top: 50, right: 50, bottom: 50, left: 50 };
+        map.fitBounds(bounds, padding);
     } else if (validPoints.length === 1) {
         map.setCenter(validPoints[0]);
         map.setZoom(16);
@@ -356,71 +326,40 @@ function renderMapMarkers(data, currentDeviceId) {
 
     // 3. Add Start/End Markers
     if (data.length > 0) {
-        // Use raw data for markers to be exact with start/end times
         const startLoc = data[0];
         const endLoc = data[data.length - 1];
         addEndpointMarker(startLoc, "Start Point", false, device);
         addEndpointMarker(endLoc, "End Point (Latest)", true, device);
     }
-
-    map.fitBounds(bounds);
 }
 
 /**
- * Uses Google Directions API to draw a path snapped to roads.
- * Handles the 23-waypoint limit by sampling points.
+ * Draws a Polyline connecting the GPS points.
+ * Includes directional arrows to show movement flow.
  */
-function drawRouteWithDirections(points) {
-    if (!directionsService || !directionsRenderer) {
-        drawSimplePolyline(points);
-        return;
-    }
+function drawPolylinePath(coordinates) {
+    const lineSymbol = {
+        path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        scale: 3,
+        strokeColor: '#4361ee',
+        fillColor: '#4361ee',
+        fillOpacity: 1
+    };
 
-    const origin = points[0];
-    const destination = points[points.length - 1];
-    const waypoints = [];
-
-    // Logic: Google Directions API allows max 25 waypoints (Origin + Dest + 23 intermediate)
-    // We select up to 23 evenly distributed points from the middle of the array
-    if (points.length > 2) {
-        const maxIntermediate = 23;
-        // Calculate step size to distribute points evenly
-        const step = Math.max(1, Math.floor((points.length - 2) / maxIntermediate));
-        
-        for (let i = 1; i < points.length - 1; i += step) {
-            if (waypoints.length < maxIntermediate) {
-                waypoints.push({ location: points[i], stopover: false });
-            }
-        }
-    }
-
-    directionsService.route({
-        origin: origin,
-        destination: destination,
-        waypoints: waypoints,
-        travelMode: google.maps.TravelMode.DRIVING, // Snaps to roads
-        optimizeWaypoints: false // Keep chronological order
-    }, (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-            directionsRenderer.setDirections(result);
-        } else {
-            // Fallback if routing fails (e.g. quota exceeded, no road found)
-            console.warn("Directions routing failed (" + status + "). Falling back to straight lines.");
-            drawSimplePolyline(points);
-        }
-    });
-}
-
-function drawSimplePolyline(coordinates) {
-    if (pathPolyline) pathPolyline.setMap(null);
-    pathPolyline = new google.maps.Polyline({
+    historyPolyline = new google.maps.Polyline({
         path: coordinates,
         geodesic: true,
-        strokeColor: "#4361ee",
+        strokeColor: "#4361ee", // Primary Blue
         strokeOpacity: 0.8,
-        strokeWeight: 4
+        strokeWeight: 5,
+        icons: [{
+            icon: lineSymbol,
+            offset: '10%',
+            repeat: '20%' // Add arrow every 20% of the line
+        }]
     });
-    pathPolyline.setMap(map);
+
+    historyPolyline.setMap(map);
 }
 
 function addEndpointMarker(loc, title, isEnd, device) {
@@ -448,10 +387,10 @@ function addEndpointMarker(loc, title, isEnd, device) {
             anchor: new google.maps.Point(24, 24)
         };
     } else {
-        // Start Point - Small Green Dot
+        // Start Point - Small Green Dot with white border
         icon = {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 6,
+            scale: 7,
             fillColor: "#10b981",
             fillOpacity: 1,
             strokeWeight: 2,
@@ -459,28 +398,27 @@ function addEndpointMarker(loc, title, isEnd, device) {
         };
     }
 
+    // Using standard Marker to support custom SVGs easily
     const marker = new google.maps.Marker({
         position: position,
         map: map,
         icon: icon,
         title: title,
         zIndex: isEnd ? 1000 : 100,
+        animation: isEnd ? google.maps.Animation.DROP : null
     });
 
-    // Info Window
+    // Info Window logic
     let timeStr = 'N/A';
-    if (loc.timestamp && typeof loc.timestamp.toDate === 'function') {
-        timeStr = loc.timestamp.toDate().toLocaleTimeString();
-    } else if (typeof loc.time === 'string') {
-        const d = new Date(loc.time);
-        timeStr = !isNaN(d) ? d.toLocaleTimeString() : loc.time;
-    }
+    const dateObj = parseDateHelper(loc);
+    if (dateObj) timeStr = dateObj.toLocaleTimeString();
 
     const infoWindow = new google.maps.InfoWindow({
         content: `
-            <div style="text-align:center; color:black">
-                <div style="font-weight:bold; color:#4361ee">${title}</div>
-                <div style="font-size:12px; color:#666">${timeStr}</div>
+            <div style="text-align:center; color:black; padding:5px;">
+                <div style="font-weight:bold; color:#4361ee; margin-bottom:2px;">${title}</div>
+                <div style="font-size:12px; color:#333">${timeStr}</div>
+                <div style="font-size:10px; color:#666; margin-top:2px;">${position.lat().toFixed(5)}, ${position.lng().toFixed(5)}</div>
             </div>
         `
     });
@@ -548,20 +486,18 @@ function renderTimeline(data) {
 
     if (!data || data.length === 0) {
         if (elements.timelineEmpty) {
-            elements.timelineEmpty.style.display = 'flex';
             elements.timelineEmpty.classList.remove('hidden');
         }
         return;
     }
     if (elements.timelineEmpty) {
-        elements.timelineEmpty.style.display = 'none';
         elements.timelineEmpty.classList.add('hidden');
     }
     
     const listWrapper = document.createElement('div');
     listWrapper.className = "p-4 space-y-0"; 
 
-    // Reverse data to show latest first
+    // Reverse data to show latest first in timeline
     const reversedData = [...data].reverse();
 
     reversedData.forEach((point, index) => {
@@ -579,7 +515,7 @@ function renderTimeline(data) {
         
         item.innerHTML = `
             <div class="flex flex-col items-center relative">
-                <div class="w-6 h-6 bg-primary-600 text-white text-[10px] font-bold rounded-full z-10 ring-4 ring-white dark:ring-gray-800 flex items-center justify-center">
+                <div class="w-6 h-6 bg-primary-600 text-white text-[10px] font-bold rounded-full z-10 ring-4 ring-white dark:ring-gray-800 flex items-center justify-center shadow-sm">
                     ${pointNumber}
                 </div>
                 <div class="w-0.5 bg-gray-200 dark:bg-gray-700 absolute top-3 ${lineClass}" style="height: calc(100% + 1rem);"></div>
@@ -591,9 +527,9 @@ function renderTimeline(data) {
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">
                     ${lat.toFixed(5)}, ${lng.toFixed(5)}
                 </p>
-                <button class="text-xs text-primary-600 mt-1 hover:underline" 
+                <button class="text-xs text-primary-600 mt-1 hover:underline flex items-center gap-1" 
                     onclick="window.focusMapOnPoint(${lat}, ${lng})">
-                    View on Map
+                    <i class="bi bi-crosshair"></i> View on Map
                 </button>
             </div>
         `;
@@ -602,15 +538,27 @@ function renderTimeline(data) {
     container.appendChild(listWrapper);
 }
 
+// Global function for timeline click events
 window.focusMapOnPoint = (lat, lng) => {
     if (map && !isNaN(lat) && !isNaN(lng)) {
         const pos = { lat, lng };
         map.panTo(pos);
         map.setZoom(18);
-        new google.maps.Marker({
+        
+        // Brief highlight marker
+        const highlight = new google.maps.Marker({
             position: pos,
             map: map,
-            animation: google.maps.Animation.DROP
+            animation: google.maps.Animation.BOUNCE,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#f59e0b",
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: "white",
+            }
         });
+        setTimeout(() => highlight.setMap(null), 2000);
     }
 };
