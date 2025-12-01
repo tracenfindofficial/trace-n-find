@@ -694,7 +694,6 @@ function hidePreloader() {
 
 function checkDeviceStatusChanges(userId, currentDevices) {
     if (appState.isFirstLoad) {
-        // Initialize cache on first load
         currentDevices.forEach(device => {
             appState.previousDevices[device.id] = { ...device };
         });
@@ -709,29 +708,33 @@ function checkDeviceStatusChanges(userId, currentDevices) {
             return;
         }
 
-        // 1. Detect Tracking START (Offline -> Online)
+        // 1. Detect Tracking START (Offline/Lost -> Online)
+        // Fixed to cover 'lost' -> 'online' transition
         if (prev.status !== 'online' && device.status === 'online') {
             createAutoNotification(userId, device, 'tracking-start');
         }
 
-        // 2. Detect Tracking STOP (Any -> Offline)
+        // 2. Detect Tracking STOP (Online -> Offline)
         if (prev.status !== 'offline' && device.status === 'offline') {
             createAutoNotification(userId, device, 'tracking-stop');
         }
+        
+        // 3. Detect LOST Mode (Any -> Lost) - NEW
+        if (prev.status !== 'lost' && device.status === 'lost') {
+            createAutoNotification(userId, device, 'device-lost');
+        }
 
-        // 3. Detect SIM Eject / Change
+        // 4. Detect SIM Eject / Change
         if (prev.security?.sim_status && device.security?.sim_status && 
             prev.security.sim_status !== device.security.sim_status && 
             device.security.sim_status.includes("🚨")) {
              createAutoNotification(userId, device, 'sim-alert');
         }
 
-        // 4. Detect Finder Message
+        // 5. Detect Finder Message/Photo (Existing logic...)
         if (device.finder_message && (!prev || prev.finder_message !== device.finder_message)) {
              createAutoNotification(userId, device, 'finder-message');
         }
-
-        // 5. Detect Finder Photo
         if (device.finder_photo_url && (!prev || prev.finder_photo_url !== device.finder_photo_url)) {
              createAutoNotification(userId, device, 'finder-photo');
         }
@@ -742,6 +745,9 @@ function checkDeviceStatusChanges(userId, currentDevices) {
 }
 
 async function createAutoNotification(userId, device, type) {
+    // FIX: sanitizeHTML is good for security, but we must ensure we don't
+    // wrap it in tags that showToast can't handle or that get double-escaped.
+    // We will use the safe name in a plain text string for the toast.
     const safeName = sanitizeHTML(device.name);
     let title, message, notifType, toastType;
 
@@ -757,6 +763,12 @@ async function createAutoNotification(userId, device, type) {
             message = `${safeName} has gone offline.`;
             notifType = 'tracking-stop';
             toastType = 'warning';
+            break;
+        case 'device-lost': // NEW Handler
+            title = 'Lost Mode Active';
+            message = `${safeName} is now in Lost Mode.`;
+            notifType = 'lost-mode';
+            toastType = 'error'; // Red toast for high alert
             break;
         case 'sim-alert':
             title = 'SIM Security Alert';
@@ -780,34 +792,25 @@ async function createAutoNotification(userId, device, type) {
             return;
     }
 
-    // 1. Show Visual Toast (Always show this locally so the user sees it immediately)
+    // 1. Show Visual Toast
     showToast(title, message, toastType);
 
-    // --- FIX: DEDUPLICATION LOGIC ---
-    // Check if a similar notification exists in the last 10 seconds to prevent
-    // multiple tabs from creating the same notification.
+    // 2. Save to Database (Deduplication Logic)
     try {
         const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-        // Fetch only the 3 most recent notifications
         const q = query(notifsRef, orderBy('timestamp', 'desc'), limit(3));
         const snapshot = await getDocs(q);
 
         const isDuplicate = snapshot.docs.some(doc => {
             const data = doc.data();
-            // Check if title matches AND it was created less than 10 seconds ago
             const now = new Date();
             const notifTime = data.timestamp ? data.timestamp.toDate() : new Date();
             const diffSeconds = (now - notifTime) / 1000;
-            
             return data.title === title && data.message === message && diffSeconds < 10;
         });
 
-        if (isDuplicate) {
-            console.log(`Duplicate notification prevented: ${title}`);
-            return; // STOP here, don't save to DB
-        }
+        if (isDuplicate) return;
 
-        // 2. If not duplicate, Save to Database
         await addDoc(notifsRef, {
             title: title,
             message: message,
@@ -815,7 +818,6 @@ async function createAutoNotification(userId, device, type) {
             read: false,
             timestamp: serverTimestamp()
         });
-        console.log(`Global Notification created: ${type}`);
 
     } catch(e) {
         console.error("Error managing notifications:", e);

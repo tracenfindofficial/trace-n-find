@@ -60,10 +60,8 @@ const elements = {
     
     // Info
     infoOS: document.getElementById('device-os'),
-    // UPDATED: Renamed from infoSerial to infoCarrierStatus
     infoCarrierStatus: document.getElementById('device-carrier-status'),
     infoIP: document.getElementById('device-ip'),
-    // UPDATED: Renamed from infoIMEI to infoCarrier
     infoCarrier: document.getElementById('device-carrier'),
     infoMAC: document.getElementById('device-mac'),
     
@@ -167,14 +165,11 @@ function listenForActivityData(userId, deviceId) {
 
 function updateUI(device) {
     // 1. SAFETY: Create safe nested objects if they are missing
-    // This allows us to check device.info.type without crashing if device.info is undefined
     const info = device.info || {};
-    const network = device.network || {};
     const sim = device.sim || {};
-    const storage = device.storage || {};
+    const security = device.security || {}; // Added security object check
     
     // 2. Update Header Info
-    // Use the helper to sanitize and provide a fallback
     elements.headerName.textContent = device.name || 'Unknown Device';
     elements.deviceName.textContent = device.name || 'Unknown Device';
     elements.deviceModel.textContent = device.model || info.model || 'Unknown Model';
@@ -194,23 +189,29 @@ function updateUI(device) {
     elements.deviceLastSeen.textContent = formatTimeAgo(device.lastSeen || device.last_updated);
     
     // 3. Stats (Battery, Storage, Network, Signal)
-    // We check both the top-level field and the nested field
+    
+    // Battery
     const battLevel = device.battery ?? device.battery_level ?? 0;
     elements.statBattery.textContent = `${battLevel}%`;
     
-    const storageUsed = storage.used || device.storage_used || 0;
-    const storageTotal = storage.total || device.storage_total || 0;
-    elements.statStorage.textContent = (storageTotal > 0) ? `${storageUsed}GB / ${storageTotal}GB` : 'N/A';
+    // Storage
+    elements.statStorage.textContent = device.storage || 'N/A';
     
-    // Network: Check device.network (string), device.network.type, or device.wifi_ssid
-    elements.statNetwork.textContent = network.type || device.network || (device.wifi_ssid ? 'WiFi' : 'Cellular');
+    // Network (Fallback to 'network' if 'network_display' is missing)
+    elements.statNetwork.textContent = device.network_display || device.network || 'N/A';
     
-    // Signal: Check device.signal (number) or nested
-    const signal = network.signal_strength ?? device.signal ?? device.signal_level;
-    elements.statSignal.textContent = (signal) ? `${signal} dBm` : 'N/A';
+    // Signal (Use ?? to allow 0 as a valid value)
+    const signalRaw = device.signal_strength ?? device.signal ?? device.signal_level;
     
-    // 4. Info Grid (The part likely missing in your screenshot)
-    // We strictly check the nested 'info' object, then fall back to top-level
+    if (signalRaw !== undefined && signalRaw !== null) {
+        // Clean the value: Remove "dBm" or spaces if they already exist
+        const signalClean = String(signalRaw).replace(/\s?dBm/gi, '').trim();
+        elements.statSignal.textContent = `${signalClean} dBm`;
+    } else {
+        elements.statSignal.textContent = 'N/A';
+    }
+    
+    // 4. Info Grid
     elements.infoOS.textContent = device.os_version || device.os || info.os || 'N/A';
     elements.infoIP.textContent = device.ip_address || device.ip || info.ip || 'N/A';
     
@@ -222,14 +223,20 @@ function updateUI(device) {
     const carrierName = sim.carrier || device.carrier || 'Unknown Carrier';
     elements.infoCarrier.textContent = carrierName;
     
-    const carrierStatus = sim.status || device.carrierStatus || device.sim_status || 'Unknown';
-    elements.infoCarrierStatus.textContent = carrierStatus;
+    // UPDATED: Carrier Status with ROBUST FALLBACKS
+    // 1. Check your requested field (sim_status)
+    // 2. Check security object (security.sim_status) - used by app-shell.js
+    // 3. Check sim object (sim.status) - legacy format
+    const simStatus = device.sim_status || security.sim_status || sim.status || 'Unknown';
+    elements.infoCarrierStatus.textContent = simStatus;
     
     // Color coding for Carrier Status
     elements.infoCarrierStatus.className = 'font-medium'; // Reset classes
-    if (['active', 'online', 'ready'].includes(carrierStatus.toLowerCase())) {
+    const safeStatus = String(simStatus).toLowerCase();
+    
+    if (['active', 'online', 'ready', 'inserted'].includes(safeStatus)) {
         elements.infoCarrierStatus.classList.add('text-success-500');
-    } else if (['inactive', 'blocked', 'missing', 'removed'].includes(carrierStatus.toLowerCase())) {
+    } else if (['inactive', 'blocked', 'missing', 'removed', 'absent', 'ejected'].includes(safeStatus)) {
         elements.infoCarrierStatus.classList.add('text-danger-500');
     }
 
@@ -390,6 +397,9 @@ function updateMapMarker(device) {
     } else {
         // Update existing marker
         deviceMarker.setPosition(position);
+
+        deviceMarker.setIcon(iconConfig);
+
         // If info window is open, update content
         if (infoWindow.getMap()) {
              const content = `

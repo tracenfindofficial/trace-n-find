@@ -633,7 +633,6 @@ class DashboardManager {
                     timestamp: serverTimestamp()
                 });
 
-                showToast('Action Sent', `Command sent to ${safeName}.`, 'success');
             } catch (error) {
                 console.error("Error executing security action:", error);
                 showToast('Error', 'Could not send command.', 'error');

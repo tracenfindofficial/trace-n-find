@@ -346,44 +346,40 @@ async function executeBatchAction(actionName, dataPayload, count, singleDeviceNa
     });
 
     try {
-        await batch.commit(); // Commit the device updates
-        await Promise.all(activityPromises); // Wait for activity logs to be written
+        await batch.commit(); 
+        await Promise.all(activityPromises); 
         
-        // 3. Create Global Notification (existing logic)
-        const notifRef = collection(fbDB, 'user_data', userId, 'notifications');
-        
-        let title = "Security Action";
-        let message = `Command "${actionName}" sent successfully.`;
-        let type = "security";
-        
-        if (actionName === 'ring') {
-            title = "Alarm Triggered";
-            message = `Alarm sound sent to ${count > 1 ? count + ' devices' : singleDeviceName}.`;
-            type = "security";
-        } else if (actionName === 'lost') {
-            title = "Lost Mode Active";
-            message = `${count > 1 ? count + ' devices marked' : singleDeviceName + ' marked'} as Lost.`;
-            type = "lost-mode";
-        } else if (actionName === 'found') {
-            title = "Device Recovered";
-            message = `${count > 1 ? count + ' devices marked' : singleDeviceName + ' marked'} as Found.`;
-            type = "success";
-        } else if (actionName === 'wipe') {
-            title = "Wipe Initiated";
-            message = `Wipe command sent to ${count > 1 ? count + ' devices' : singleDeviceName}.`;
-            type = "danger";
+        // --- FIX: PREVENT DOUBLE NOTIFICATIONS ---
+        // Only add a notification doc here if it's NOT a status change (like 'ring' or 'wipe').
+        // For 'lost' and 'found', app-shell.js detects the status change and adds the notification automatically.
+        if (actionName !== 'lost' && actionName !== 'found') {
+            const notifRef = collection(fbDB, 'user_data', userId, 'notifications');
+            
+            let title = "Security Action";
+            let message = `Command "${actionName}" sent successfully.`;
+            let type = "security";
+            
+            if (actionName === 'ring') {
+                title = "Alarm Triggered";
+                message = `Alarm sound sent to ${count > 1 ? count + ' devices' : singleDeviceName}.`;
+                type = "security";
+            } else if (actionName === 'wipe') {
+                title = "Wipe Initiated";
+                message = `Wipe command sent to ${count > 1 ? count + ' devices' : singleDeviceName}.`;
+                type = "danger";
+            }
+            
+            await addDoc(notifRef, {
+                title: title,
+                message: message,
+                type: type,
+                read: false,
+                timestamp: serverTimestamp()
+            });
         }
         
-        await addDoc(notifRef, {
-            title: title,
-            message: message,
-            type: type,
-            read: false,
-            timestamp: serverTimestamp()
-        });
-        
-        showToast('Success', 'Command sent and logged.', 'success');
-        
+        // REMOVED: showToast call (Correctly handled by you already)
+
         if (actionName === 'wipe') {
             selectedDeviceIds.clear();
             renderDeviceList();
