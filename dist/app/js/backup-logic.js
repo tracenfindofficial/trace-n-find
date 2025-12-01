@@ -19,7 +19,7 @@ import {
     showToast,
     showModal,
     setLoadingState,
-    where
+    // REMOVED: where (was only used for local notification count)
 } from '/app/js/app-shell.js';
 
 // --- Global State for this Page ---
@@ -33,7 +33,7 @@ const elements = {
     uploadBackupInput: document.getElementById('upload-backup-input'),
     backupList: document.getElementById('backup-list'),
     backupListEmpty: document.getElementById('backup-list-empty'),
-    notificationBadge: document.getElementById('notificationBadge'),
+    // REMOVED: notificationBadge reference to prevent conflict with app-shell.js
 };
 
 // --- Initialization ---
@@ -55,7 +55,8 @@ function waitForAuth(callback) {
 waitForAuth((userId) => {
     setupEventListeners(userId);
     listenForBackups(userId);
-    listenForUnreadNotifications(userId);
+    // REMOVED: listenForUnreadNotifications(userId);
+    // The global app-shell.js now handles the badge count with proper deduplication.
 });
 
 function setupEventListeners(userId) {
@@ -82,32 +83,6 @@ function setupEventListeners(userId) {
                 handleDelete(backupId, userId);
             }
         });
-    }
-}
-
-// --- Notification Logic ---
-function listenForUnreadNotifications(userId) {
-    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-    const q = query(notifsRef, where("read", "==", false));
-
-    onSnapshot(q, (snapshot) => {
-        updateBadgeCount(snapshot.size);
-    }, (error) => {
-        console.error("Error listening for unread count:", error);
-    });
-}
-
-function updateBadgeCount(count) {
-    const badge = elements.notificationBadge;
-    if (!badge) return;
-
-    if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-        badge.classList.add('animate-pulse');
-    } else {
-        badge.classList.add('hidden');
-        badge.classList.remove('animate-pulse');
     }
 }
 

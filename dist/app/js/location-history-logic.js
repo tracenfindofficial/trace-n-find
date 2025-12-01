@@ -1,4 +1,4 @@
-// --- Trace'N Find Location History Logic (FIXED ROUTING) ---
+// --- Trace'N Find Location History Logic (FIXED ROUTING + BREADCRUMBS) ---
 import { 
     fbDB,
     collection, 
@@ -11,9 +11,8 @@ import {
     doc,
     getDoc,
     getDocs,
-    sanitizeHTML,
-    where,
-    onSnapshot
+    sanitizeHTML
+    // REMOVED: where, onSnapshot (handled globally in app-shell.js)
 } from '/app/js/app-shell.js';
 
 // Import Google Map Styles
@@ -35,8 +34,7 @@ const elements = {
     timelineEmpty: document.getElementById('timeline-empty'),
     historyTitleHeader: document.getElementById('history-title-header'),
     
-    // Notification Badge
-    notificationBadge: document.getElementById('notificationBadge'),
+    // REMOVED: notificationBadge reference to prevent conflict with app-shell.js
     
     // Stats Elements
     statTotalPoints: document.getElementById('stat-total-points'),
@@ -84,35 +82,11 @@ function waitForAuth(callback) {
 waitForAuth((userId) => {
     initMap();
     setupEventListeners(userId);
-    listenForUnreadNotifications(userId);
+    // REMOVED: listenForUnreadNotifications(userId);
+    // The global app-shell.js now handles the badge count with proper deduplication.
     setDateToToday();
     loadDeviceOptions(userId);
 });
-
-function listenForUnreadNotifications(userId) {
-    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-    const q = query(notifsRef, where("read", "==", false));
-
-    onSnapshot(q, (snapshot) => {
-        updateBadgeCount(snapshot.size);
-    }, (error) => {
-        console.error("Error listening for unread count:", error);
-    });
-}
-
-function updateBadgeCount(count) {
-    const badge = elements.notificationBadge;
-    if (!badge) return;
-
-    if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-        badge.classList.add('animate-pulse');
-    } else {
-        badge.classList.add('hidden');
-        badge.classList.remove('animate-pulse');
-    }
-}
 
 function setupEventListeners(userId) {
     if(elements.refreshButton) elements.refreshButton.addEventListener('click', () => loadHistoryData(userId));
@@ -187,8 +161,6 @@ function initMap() {
     });
 }
 
-// In dist/app/js/location-history-logic.js
-
 async function loadHistoryData(userId) {
     const deviceId = elements.deviceFilter.value;
     const dateString = elements.dateFilter.value; 
@@ -257,7 +229,7 @@ function updateStats(points, distance, duration) {
     }
 }
 
-// --- FIX: UPDATED ROUTE RENDERING (Use Polyline, not Directions) ---
+// --- UPDATED ROUTE RENDERING (Option 1: Breadcrumbs) ---
 function renderMapMarkers(data, currentDeviceId) {
     if (!map) return;
 
@@ -299,7 +271,7 @@ function renderMapMarkers(data, currentDeviceId) {
         return;
     }
 
-    // --- CASE B: History Exists (Draw Polyline) ---
+    // --- CASE B: History Exists (Draw Polyline + Breadcrumbs) ---
     const bounds = new google.maps.LatLngBounds();
     const validPoints = [];
     
@@ -314,7 +286,6 @@ function renderMapMarkers(data, currentDeviceId) {
 
     if (validPoints.length > 1) {
         // Draw the path using Polyline (Exact tracking)
-        // Note: Directions API is removed because it causes loops/errors on raw GPS data
         drawPolylinePath(validPoints);
         
         // Fit bounds to show whole route
@@ -328,18 +299,54 @@ function renderMapMarkers(data, currentDeviceId) {
         map.setZoom(16);
     }
 
-    // 3. Add Start/End Markers
+    // 3. Add Start/End Markers AND Breadcrumbs
     if (data.length > 0) {
+        // A. Start Point (Green)
         const startLoc = data[0];
-        const endLoc = data[data.length - 1];
         addEndpointMarker(startLoc, "Start Point", false, device);
+
+        // B. Intermediate Breadcrumbs (Small Blue Dots)
+        if (data.length > 2) {
+            for (let i = 1; i < data.length - 1; i++) {
+                const pt = data[i];
+                const position = parseLatLng(pt);
+                if (position) {
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 3, // Small, unobtrusive dot
+                            fillColor: "#4361ee", // Primary Blue
+                            fillOpacity: 0.8,
+                            strokeWeight: 0
+                        },
+                        title: parseDateHelper(pt)?.toLocaleTimeString() || "History Point",
+                        zIndex: 1 // Keep below start/end markers
+                    });
+                    
+                    // Optional: Make breadcrumbs clickable if desired
+                    /* marker.addListener('click', () => {
+                        new google.maps.InfoWindow({
+                            content: `<small>${marker.title}</small>`
+                        }).open(map, marker);
+                    }); 
+                    */
+                    
+                    markers.push(marker);
+                }
+            }
+        }
+
+        // C. End Point (Custom Pin)
+        const endLoc = data[data.length - 1];
         addEndpointMarker(endLoc, "End Point (Latest)", true, device);
     }
 }
 
 /**
  * Draws a Polyline connecting the GPS points.
- * Includes directional arrows to show movement flow.
+ * Includes directional arrows repeating every 100px.
  */
 function drawPolylinePath(coordinates) {
     const lineSymbol = {
@@ -358,8 +365,8 @@ function drawPolylinePath(coordinates) {
         strokeWeight: 5,
         icons: [{
             icon: lineSymbol,
-            offset: '10%',
-            repeat: '20%' // Add arrow every 20% of the line
+            offset: '0',    // Start immediately
+            repeat: '100px' // Arrow every 100 pixels (better than %)
         }]
     });
 
@@ -391,7 +398,7 @@ function addEndpointMarker(loc, title, isEnd, device) {
             anchor: new google.maps.Point(24, 24)
         };
     } else {
-        // Start Point - Small Green Dot with white border
+        // Start Point - Medium Green Dot with white border
         icon = {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 7,
@@ -408,7 +415,7 @@ function addEndpointMarker(loc, title, isEnd, device) {
         map: map,
         icon: icon,
         title: title,
-        zIndex: isEnd ? 1000 : 100,
+        zIndex: isEnd ? 1000 : 900, // End point always on top, Start point below it
         animation: isEnd ? google.maps.Animation.DROP : null
     });
 

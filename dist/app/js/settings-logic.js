@@ -19,12 +19,8 @@ import {
     RecaptchaVerifier, 
     PhoneAuthProvider, 
     multiFactor, 
-    PhoneMultiFactorGenerator,
-    // NEW: Imports for notification logic
-    collection,
-    query,
-    where,
-    onSnapshot
+    PhoneMultiFactorGenerator
+    // REMOVED: collection, query, where, onSnapshot (handled globally in app-shell.js)
 } from '/app/js/app-shell.js'; // Use relative path
 
 // --- DOM Elements ---
@@ -48,8 +44,7 @@ const elements = {
     sidebarUserEmail: document.getElementById('userEmail'),
     allUserAvatars: document.querySelectorAll('.user-avatar-display'), // Gets header + sidebar
     
-    // Notification Badge
-    notificationBadge: document.getElementById('notificationBadge'),
+    // REMOVED: notificationBadge reference to prevent conflict with app-shell.js
 };
 
 // --- Initialization ---
@@ -71,7 +66,8 @@ waitForAuth((user) => {
     loadUserSettings(user);
     setupEventListeners(user.uid);
     initMfaLogic(user);
-    listenForUnreadNotifications(user.uid); // Start listening for notifications
+    // REMOVED: listenForUnreadNotifications(user.uid); 
+    // The global app-shell.js now handles the badge count with proper deduplication.
 });
 
 /**
@@ -104,34 +100,6 @@ function setupEventListeners(userId) {
     if(elements.preferencesForm) elements.preferencesForm.addEventListener('submit', (e) => handleSavePreferences(e, userId));
     
     elements.deleteAccountBtn.addEventListener('click', () => handleDeleteAccount(userId));
-}
-
-// --- Notification Logic ---
-function listenForUnreadNotifications(userId) {
-    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-    
-    // Query specifically for unread items to get an accurate count
-    const q = query(notifsRef, where("read", "==", false));
-
-    onSnapshot(q, (snapshot) => {
-        updateBadgeCount(snapshot.size);
-    }, (error) => {
-        console.error("Error listening for unread count:", error);
-    });
-}
-
-function updateBadgeCount(count) {
-    const badge = elements.notificationBadge;
-    if (!badge) return;
-
-    if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-        badge.classList.add('animate-pulse');
-    } else {
-        badge.classList.add('hidden');
-        badge.classList.remove('animate-pulse');
-    }
 }
 
 // --- Core Logic ---

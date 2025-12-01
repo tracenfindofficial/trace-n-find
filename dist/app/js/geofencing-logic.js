@@ -1,8 +1,3 @@
-//### 2. Update `dist/app/js/geofencing-logic.js`
-//* **Notification Logic:** Added logic to count unread notifications and update the badge.
-//* **Device Marker:** Updated `renderDevicesOnMap` to use the animated SVG markers similar to the dashboard, improving visibility and aesthetic consistency.
-
-//```javascript:Branding & Markers Logic:dist/app/js/geofencing-logic.js
 // --- Trace'N Find Geofencing Logic ---
 // This file handles all logic *specific* to geofencing.html.
 // It assumes `app-shell.js` has already been loaded and has authenticated the user.
@@ -25,8 +20,7 @@ import {
     orderBy,
     sanitizeHTML,
     formatTimeAgo,
-    // NEW: Imports for notification logic
-    where
+    // REMOVED: where (was only used for local notification count)
 } from '/app/js/app-shell.js';
 
 // Import Google Map Styles
@@ -57,8 +51,7 @@ const elements = {
     mapContainer: document.getElementById('map'),
     mapClickPrompt: document.getElementById('map-click-prompt'),
     
-    // Notification Badge
-    notificationBadge: document.getElementById('notificationBadge'),
+    // REMOVED: notificationBadge reference to prevent conflict with app-shell.js
     
     // List
     geofenceList: document.getElementById('geofence-list'),
@@ -112,36 +105,9 @@ waitForAuth((userId) => {
     setupEventListeners(userId);
     listenForGeofences(userId);
     listenForDevices(userId); 
-    listenForUnreadNotifications(userId); // Start listening for notifications
+    // REMOVED: listenForUnreadNotifications(userId); 
+    // The global app-shell.js now handles the badge count with proper deduplication.
 });
-
-// --- Notification Logic ---
-function listenForUnreadNotifications(userId) {
-    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-    
-    // Query specifically for unread items to get an accurate count
-    const q = query(notifsRef, where("read", "==", false));
-
-    onSnapshot(q, (snapshot) => {
-        updateBadgeCount(snapshot.size);
-    }, (error) => {
-        console.error("Error listening for unread count:", error);
-    });
-}
-
-function updateBadgeCount(count) {
-    const badge = elements.notificationBadge;
-    if (!badge) return;
-
-    if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-        badge.classList.add('animate-pulse');
-    } else {
-        badge.classList.add('hidden');
-        badge.classList.remove('animate-pulse');
-    }
-}
 
 /**
  * Initializes the Google Map.
@@ -516,13 +482,15 @@ function renderDevicesOnMap() {
         
         const infoWindow = new google.maps.InfoWindow({
             content: `
-                <div style="color: black; padding: 5px;">
-                    <h3 style="margin: 0 0 5px 0; font-size: 16px;">${sanitizeHTML(device.name)}</h3>
-                    <p style="margin: 0;">Status: <strong style="color:${getDeviceColor(device.status)}">${device.status}</strong></p>
-                    <p style="margin: 0;">Battery: ${battery}%</p>
-                    <p style="margin: 0; font-size: 12px; color: #666;">
-                        Seen: ${lastSeen}
-                    </p>
+                <div class="device-popup-map" style="min-width: 200px; padding: 5px; color: #333;">
+                    <h5 style="margin:0 0 5px; font-size: 16px; font-weight:bold;">${sanitizeHTML(device.name || 'Unnamed Device')}</h5>
+                    <p style="margin:2px 0;"><i class="bi bi-info-circle"></i> <strong>Model:</strong> ${sanitizeHTML(device.model || 'N/A')}</p>
+                    <p style="margin:2px 0;"><i class="bi ${getBatteryIcon(battery)}"></i> <strong>Battery:</strong> ${battery}%</p>
+                    <p style="margin:2px 0;"><i class="bi bi-clock"></i> <strong>Last Seen:</strong> ${lastSeen}</p>
+                    <p style="margin:2px 0;"><i class="bi bi-shield-check"></i> <strong>Status:</strong> <span style="color: ${getDeviceColor(device.status)}; font-weight:500; text-transform:capitalize;">${device.status}</span></p>
+                    <a href="/app/device-details.html?id=${device.id}" class="btn" style="display:block; text-align:center; background:#4361ee; color:white; padding:5px; text-decoration:none; border-radius:4px; margin-top:8px;">
+                        <i class="bi bi-search mr-1"></i> View Details
+                    </a>
                 </div>
             `
         });

@@ -212,20 +212,41 @@ function renderNotificationList() {
 }
 
 function updateBadgeCount() {
-    if (!elements.notificationBadge) return;
-
-    // Only count unread items that are VISIBLE (unique)
-    // This ensures the badge matches the visual list, not the database count
+    // 1. Calculate the CORRECT unique unread count
     const uniqueList = getUniqueNotifications(allNotifications);
     const unreadCount = uniqueList.filter(n => n.read === false).length;
+
+    // 2. Identify ALL badge elements on the page (Header, Sidebar, Mobile Menu)
+    const badgeSelectors = [
+        '#notificationBadge',           // Main Header Badge
+        '#sidebar-notification-count',  // Sidebar Badge (Common ID)
+        '.notification-badge',          // Generic Class
+        '.badge-notification',          // Generic Class
+        '[data-notification-count]'     // Data Attribute
+    ];
     
+    // Combine selectors and find all matching elements
+    const badges = document.querySelectorAll(badgeSelectors.join(','));
+
+    // 3. Update all found badges
+    badges.forEach(badge => {
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.classList.remove('hidden');
+            badge.style.display = ''; // Reset display to default (block/flex)
+            badge.classList.add('animate-pulse');
+        } else {
+            badge.classList.add('hidden');
+            badge.style.display = 'none'; // Force hide
+            badge.classList.remove('animate-pulse');
+        }
+    });
+
+    // 4. Update Document Title for browser tab visibility
     if (unreadCount > 0) {
-        elements.notificationBadge.textContent = unreadCount;
-        elements.notificationBadge.classList.remove('hidden');
-        elements.notificationBadge.classList.add('animate-pulse');
+        document.title = `(${unreadCount}) Notifications - Trace'N Find`;
     } else {
-        elements.notificationBadge.classList.add('hidden');
-        elements.notificationBadge.classList.remove('animate-pulse');
+        document.title = `Notifications - Trace'N Find`;
     }
 }
 

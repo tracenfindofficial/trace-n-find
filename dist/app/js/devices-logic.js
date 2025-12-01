@@ -14,7 +14,7 @@ import {
     deleteDoc,
     onSnapshot,  // <-- ADDED
     orderBy,
-    where, // <-- ADDED: For notification query
+    // REMOVED: where (was only used for local notification count)
     formatTimeAgo,
     getDeviceIcon,
     getBatteryIcon,
@@ -71,8 +71,7 @@ class DevicePageManager {
             gridViewBtn: document.getElementById('gridViewBtn'),
             tableViewBtn: document.getElementById('tableViewBtn'),
 
-            // Notification Badge (Added for functional parity with dashboard)
-            notificationBadge: document.getElementById('notificationBadge'),
+            // REMOVED: notificationBadge reference to prevent conflict with app-shell.js
         };
 
         // --- Internal State ---
@@ -98,7 +97,9 @@ class DevicePageManager {
         // It shows the skeleton, then calls its own data-fetching function.
         this.setLoading(true); // Show loading skeleton immediately
         this.listenForDevices(); // Call the listener function
-        this.listenForUnreadNotifications(); // Call the notification listener
+        
+        // REMOVED: this.listenForUnreadNotifications(); 
+        // The global app-shell.js now handles the badge count with proper deduplication.
         
         this.setViewMode(localStorage.getItem('deviceViewMode') || 'grid');
     }
@@ -121,35 +122,6 @@ class DevicePageManager {
             this.setLoading(false); // Hide loading on error
             this.handleDevicesLoaded([]); // Show empty state
         });
-    }
-
-    // NEW: Logic to calculate *all* unread notifications for the badge
-    // Matches dashboard-logic.js implementation
-    listenForUnreadNotifications() {
-        const notifsRef = collection(fbDB, 'user_data', this.userId, 'notifications');
-        
-        // Query specifically for unread items to get an accurate count
-        const q = query(notifsRef, where("read", "==", false));
-
-        onSnapshot(q, (snapshot) => {
-            this.updateBadgeCount(snapshot.size);
-        }, (error) => {
-            console.error("Error listening for unread count:", error);
-        });
-    }
-
-    updateBadgeCount(count) {
-        const badge = this.elements.notificationBadge;
-        if (!badge) return;
-
-        if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.classList.remove('hidden');
-            badge.classList.add('animate-pulse');
-        } else {
-            badge.classList.add('hidden');
-            badge.classList.remove('animate-pulse');
-        }
     }
 
     setupEventListeners() {

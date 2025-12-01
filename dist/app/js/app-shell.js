@@ -264,7 +264,7 @@ setTimeout(() => {
     }
 }, 2500); // 2.5 second timeout
 
-// --- GLOBAL NOTIFICATION LOGIC (Sound + Badge) ---
+// --- GLOBAL NOTIFICATION LOGIC (Sound + Badge + Deduplication) ---
 function initGlobalNotifications(userId) {
 
     if (unsubscribeNotifications) {
@@ -273,29 +273,33 @@ function initGlobalNotifications(userId) {
     }
 
     const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-    // Only listen for unread notifications
+    // Only listen for unread notifications to be efficient
     const q = query(notifsRef, where("read", "==", false));
 
     unsubscribeNotifications = onSnapshot(q, (snapshot) => {
-        const count = snapshot.size;
+        // FIX: Previously we just did snapshot.size, which counted duplicates.
+        // Now we fetch the data and deduplicate it before counting.
         
-        // 1. Update Badge
-        if (elements.notificationBadge) {
-            if (count > 0) {
-                elements.notificationBadge.textContent = count > 99 ? '99+' : count;
-                elements.notificationBadge.classList.remove('hidden');
-                elements.notificationBadge.classList.add('animate-pulse');
-            } else {
-                elements.notificationBadge.classList.add('hidden');
-                elements.notificationBadge.classList.remove('animate-pulse');
-            }
-        }
+        const rawNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // CRITICAL FIX: Sort client-side by timestamp descending.
+        // This ensures consistent deduplication with the Notification Page logic.
+        // Without this, 'getUniqueNotifications' might process items in a different order
+        // (e.g., ID order) and pick a different "unique" item, leading to mismatched counts.
+        rawNotifications.sort((a, b) => getTimestampMs(b) - getTimestampMs(a));
 
-        // 2. Play Sound Logic
+        const uniqueNotifications = getUniqueNotifications(rawNotifications);
+        const count = uniqueNotifications.length;
+        
+        // 1. Update All Badges (Header, Sidebar, etc.)
+        updateGlobalBadges(count);
+
+        // 2. Play Sound Logic (Only if NEW items added to the raw list)
         if (!isFirstNotificationLoad) {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
-                    // New unread notification arrived
+                    // We play sound even for duplicates because the event physically happened
+                    // but we could limit this if it's too noisy.
                     try {
                         notificationSound.currentTime = 0; // Reset to start
                         notificationSound.play().catch(e => console.warn("Audio autoplay blocked:", e));
@@ -312,6 +316,83 @@ function initGlobalNotifications(userId) {
     }, (error) => {
         console.error("Error listening for global notifications:", error);
     });
+}
+
+// --- Helper Functions for Notifications ---
+
+function updateGlobalBadges(count) {
+    // Identify ALL badge elements on the page (Header, Sidebar, Mobile Menu)
+    const badgeSelectors = [
+        '#notificationBadge',           // Main Header Badge
+        '#sidebar-notification-count',  // Sidebar Badge (Common ID)
+        '.notification-badge',          // Generic Class
+        '.badge-notification',          // Generic Class
+        '[data-notification-count]'     // Data Attribute
+    ];
+    
+    // Combine selectors and find all matching elements
+    const badges = document.querySelectorAll(badgeSelectors.join(','));
+
+    badges.forEach(badge => {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+            badge.style.display = ''; 
+            badge.classList.add('animate-pulse');
+        } else {
+            badge.classList.add('hidden');
+            badge.style.display = 'none';
+            badge.classList.remove('animate-pulse');
+        }
+    });
+
+    // Update Title
+    if (count > 0) {
+        document.title = `(${count}) ${document.title.replace(/^\(\d+\)\s/, '')}`;
+    } else {
+        document.title = document.title.replace(/^\(\d+\)\s/, '');
+    }
+}
+
+/**
+ * Filters the raw list to show only unique notifications.
+ * (Ported from notifications-logic.js to ensure global consistency)
+ */
+function getUniqueNotifications(notifications) {
+    const unique = [];
+    const seenSignatures = new Map(); // key: "type|title|msg", value: timestamp
+
+    notifications.forEach(notification => {
+        const timeMs = getTimestampMs(notification);
+        // Signature defines "sameness"
+        const signature = `${notification.type}|${notification.title}|${notification.message}`;
+        
+        if (seenSignatures.has(signature)) {
+            const lastTime = seenSignatures.get(signature);
+            const timeDiff = Math.abs(timeMs - lastTime);
+            
+            // If the same message appears within 10 seconds, treat it as a duplicate
+            if (timeDiff < 10000) { 
+                return; // Skip this one (it's a duplicate)
+            }
+        }
+
+        // It's unique (or significantly later), so keep it
+        seenSignatures.set(signature, timeMs);
+        unique.push(notification);
+    });
+
+    return unique;
+}
+
+function getTimestampMs(notification) {
+    if (notification.timestamp && typeof notification.timestamp.toMillis === 'function') {
+        return notification.timestamp.toMillis();
+    } else if (notification.time) {
+        const d = new Date(notification.time);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+    return 0;
 }
 
 /**

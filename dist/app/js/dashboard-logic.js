@@ -82,8 +82,7 @@ class DashboardManager {
             filterButtons: document.querySelectorAll('.filter-btn'),
             searchInput: document.getElementById('searchInput'),
             
-            // Notification Badge
-            notificationBadge: document.getElementById('notificationBadge'),
+            // REMOVED: notificationBadge reference to prevent conflict with app-shell.js
             
             // Action Buttons Container
             actionsContainer: document.getElementById('dashboard-actions-container'),
@@ -157,7 +156,9 @@ class DashboardManager {
         this.initMap();
         this.listenForDevices();
         this.listenForNotifications();
-        this.listenForUnreadNotifications(); // NEW: For Badge Count
+        
+        // REMOVED: this.listenForUnreadNotifications();
+        // The global app-shell.js now handles the badge count with proper deduplication.
     }
 
     setupEventListeners() {
@@ -363,7 +364,8 @@ class DashboardManager {
         });
     }
 
-    // Logic to render the *list* of notifications (only last 5)
+    // Logic to render the *list* of notifications in the Dashboard Widget (only last 5)
+    // NOTE: This does NOT update the badge. App-shell.js handles the badge globally.
     listenForNotifications() {
         const notifsRef = collection(fbDB, 'user_data', this.userId, 'notifications');
         
@@ -374,34 +376,6 @@ class DashboardManager {
             const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             this.renderNotificationsList(notifications);
         });
-    }
-
-    // NEW: Logic to calculate *all* unread notifications for the badge
-    listenForUnreadNotifications() {
-        const notifsRef = collection(fbDB, 'user_data', this.userId, 'notifications');
-        
-        // Query specifically for unread items to get an accurate count
-        const q = query(notifsRef, where("read", "==", false));
-
-        onSnapshot(q, (snapshot) => {
-            this.updateBadgeCount(snapshot.size);
-        }, (error) => {
-            console.error("Error listening for unread count:", error);
-        });
-    }
-
-    updateBadgeCount(count) {
-        const badge = this.elements.notificationBadge;
-        if (!badge) return;
-
-        if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.classList.remove('hidden');
-            badge.classList.add('animate-pulse');
-        } else {
-            badge.classList.add('hidden');
-            badge.classList.remove('animate-pulse');
-        }
     }
 
     // --- UPDATED STATS LOGIC ---
@@ -695,7 +669,7 @@ class DashboardManager {
             hasMarkers = true;
             bounds.extend(position);
             
-// --- 1. DEFINE COLORS ---
+            // --- 1. DEFINE COLORS ---
             const colorMap = {
                 online: "#10b981", // Green
                 found: "#10b981",

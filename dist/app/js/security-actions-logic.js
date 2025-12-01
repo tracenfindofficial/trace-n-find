@@ -16,10 +16,8 @@ import {
     getDeviceColor,
     formatDateTime,
     addDoc, 
-    SECURITY_BUTTONS,
-    // NEW: Imports for notification logic
-    where,
-    onSnapshot
+    SECURITY_BUTTONS
+    // REMOVED: where, onSnapshot (handled globally in app-shell.js)
 } from '/app/js/app-shell.js';
 
 // --- Global State ---
@@ -39,8 +37,7 @@ const elements = {
     selectAllCheckbox: document.getElementById('select-all'),
     selectedCount: document.getElementById('selected-count'),
     
-    // Notification Badge
-    notificationBadge: document.getElementById('notificationBadge'),
+    // REMOVED: notificationBadge reference to prevent conflict with app-shell.js
 
     actionButtons: {
         ring: document.getElementById('action-ring'),
@@ -115,35 +112,8 @@ function init(userId) {
 
     updateSelectionState();
     setupEventListeners(userId);
-    listenForUnreadNotifications(userId);
-}
-
-// --- Notification Logic ---
-function listenForUnreadNotifications(userId) {
-    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-    
-    // Query specifically for unread items to get an accurate count
-    const q = query(notifsRef, where("read", "==", false));
-
-    onSnapshot(q, (snapshot) => {
-        updateBadgeCount(snapshot.size);
-    }, (error) => {
-        console.error("Error listening for unread count:", error);
-    });
-}
-
-function updateBadgeCount(count) {
-    const badge = elements.notificationBadge;
-    if (!badge) return;
-
-    if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-        badge.classList.add('animate-pulse');
-    } else {
-        badge.classList.add('hidden');
-        badge.classList.remove('animate-pulse');
-    }
+    // REMOVED: listenForUnreadNotifications(userId); 
+    // The global app-shell.js now handles the badge count with proper deduplication.
 }
 
 function setupEventListeners(userId) {
