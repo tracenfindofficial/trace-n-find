@@ -166,20 +166,24 @@ function listenForActivityData(userId, deviceId) {
 // --- UI Rendering ---
 
 function updateUI(device) {
-    // 1. Update Header Info
+    // 1. SAFETY: Create safe nested objects if they are missing
+    // This allows us to check device.info.type without crashing if device.info is undefined
+    const info = device.info || {};
+    const network = device.network || {};
+    const sim = device.sim || {};
+    const storage = device.storage || {};
+    
+    // 2. Update Header Info
+    // Use the helper to sanitize and provide a fallback
     elements.headerName.textContent = device.name || 'Unknown Device';
     elements.deviceName.textContent = device.name || 'Unknown Device';
-    elements.deviceModel.textContent = device.model || 'Unknown Model';
+    elements.deviceModel.textContent = device.model || info.model || 'Unknown Model';
     
-    // Status Color
+    // Status Color & Icon
     const statusColor = getDeviceColor(device.status);
-    
-    // Apply background color to the container (with transparency) and text color
-    elements.deviceIcon.style.backgroundColor = `${statusColor}20`; // Hex transparency ~12%
+    elements.deviceIcon.style.backgroundColor = `${statusColor}20`; 
     elements.deviceIcon.style.color = statusColor;
-    
-    // Inject the icon HTML
-    elements.deviceIcon.innerHTML = `<i class="bi ${getDeviceIcon(device.type)}"></i>`;
+    elements.deviceIcon.innerHTML = `<i class="bi ${getDeviceIcon(device.type || info.type)}"></i>`;
 
     // Status Badge
     elements.deviceStatus.textContent = device.status || 'Offline';
@@ -187,40 +191,52 @@ function updateUI(device) {
     elements.deviceStatus.className = `text-sm font-semibold uppercase px-3 py-1 rounded-full border border-current`;
 
     // Last Seen
-    elements.deviceLastSeen.textContent = formatTimeAgo(device.lastSeen);
+    elements.deviceLastSeen.textContent = formatTimeAgo(device.lastSeen || device.last_updated);
     
-    // Stats
-    elements.statBattery.textContent = (device.battery !== undefined) ? `${device.battery}%` : 'N/A';
-    elements.statStorage.textContent = (device.storage && device.storage.used) ? `${device.storage.used}GB / ${device.storage.total}GB` : 'N/A';
-    elements.statNetwork.textContent = device.network || 'N/A';
-    elements.statSignal.textContent = (device.signal) ? `${device.signal} dBm` : 'N/A';
+    // 3. Stats (Battery, Storage, Network, Signal)
+    // We check both the top-level field and the nested field
+    const battLevel = device.battery ?? device.battery_level ?? 0;
+    elements.statBattery.textContent = `${battLevel}%`;
     
-    // Info Grid
-    elements.infoOS.textContent = device.os || 'N/A';
-    elements.infoIP.textContent = device.ip || 'N/A';
-    if(elements.infoMAC) elements.infoMAC.textContent = device.mac || 'N/A';
-
-    // UPDATED: Populate Carrier and Carrier Status
-    // Using fields 'carrier' and 'carrierStatus' from Firestore document
-    elements.infoCarrier.textContent = device.carrier || 'Unknown Carrier';
+    const storageUsed = storage.used || device.storage_used || 0;
+    const storageTotal = storage.total || device.storage_total || 0;
+    elements.statStorage.textContent = (storageTotal > 0) ? `${storageUsed}GB / ${storageTotal}GB` : 'N/A';
     
-    const carrierStatus = device.carrierStatus || 'Unknown';
-    elements.infoCarrierStatus.textContent = carrierStatus;
+    // Network: Check device.network (string), device.network.type, or device.wifi_ssid
+    elements.statNetwork.textContent = network.type || device.network || (device.wifi_ssid ? 'WiFi' : 'Cellular');
     
-    // Optional: Add visual color coding for Carrier Status
-    if (carrierStatus.toLowerCase() === 'active') {
-        elements.infoCarrierStatus.classList.add('text-success-500');
-        elements.infoCarrierStatus.classList.remove('text-danger-500');
-    } else if (carrierStatus.toLowerCase() === 'inactive' || carrierStatus.toLowerCase() === 'blocked') {
-        elements.infoCarrierStatus.classList.add('text-danger-500');
-        elements.infoCarrierStatus.classList.remove('text-success-500');
-    } else {
-        elements.infoCarrierStatus.classList.remove('text-success-500', 'text-danger-500');
+    // Signal: Check device.signal (number) or nested
+    const signal = network.signal_strength ?? device.signal ?? device.signal_level;
+    elements.statSignal.textContent = (signal) ? `${signal} dBm` : 'N/A';
+    
+    // 4. Info Grid (The part likely missing in your screenshot)
+    // We strictly check the nested 'info' object, then fall back to top-level
+    elements.infoOS.textContent = device.os_version || device.os || info.os || 'N/A';
+    elements.infoIP.textContent = device.ip_address || device.ip || info.ip || 'N/A';
+    
+    if(elements.infoMAC) {
+        elements.infoMAC.textContent = device.mac_address || device.mac || info.mac || 'N/A';
     }
 
-    // 2. Reveal Content
+    // Carrier Info
+    const carrierName = sim.carrier || device.carrier || 'Unknown Carrier';
+    elements.infoCarrier.textContent = carrierName;
+    
+    const carrierStatus = sim.status || device.carrierStatus || device.sim_status || 'Unknown';
+    elements.infoCarrierStatus.textContent = carrierStatus;
+    
+    // Color coding for Carrier Status
+    elements.infoCarrierStatus.className = 'font-medium'; // Reset classes
+    if (['active', 'online', 'ready'].includes(carrierStatus.toLowerCase())) {
+        elements.infoCarrierStatus.classList.add('text-success-500');
+    } else if (['inactive', 'blocked', 'missing', 'removed'].includes(carrierStatus.toLowerCase())) {
+        elements.infoCarrierStatus.classList.add('text-danger-500');
+    }
+
+    // 5. Reveal Content
     elements.loader.style.display = 'none';
-    elements.content.classList.remove('hidden', 'animation-fade-in');
+    elements.content.classList.remove('hidden');
+    elements.content.classList.add('animate-fade-in');
     elements.content.style.opacity = '1'; 
 
     // Update Map & Charts
