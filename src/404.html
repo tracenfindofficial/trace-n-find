@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Page Not Found - The requested URL was not found on the Trace'N Find server.">
+    <title>404 Not Found - Trace'N Find</title>
+
+    <!-- 
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+    -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon (Root-relative path) -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <!-- Custom Tailwind Config (Synced with Index) -->
+    <script>
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: ['selector', '[data-theme="dark"]'],
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                            heading: ['Poppins', 'sans-serif'],
+                        },
+                        colors: {
+                            primary: {
+                                '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                                '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                                '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                            },
+                            indigo: { '500': '#6366f1' },
+                            slate: { '700': '#334155', '800': '#1e293b', '900': '#0f172a' }
+                        },
+                        animation: {
+                            'hero-gradient': 'heroGradient 15s ease infinite',
+                        },
+                        keyframes: {
+                            heroGradient: {
+                                '0%, 100%': { 'background-position': '0% 50%' },
+                                '50%': { 'background-position': '100% 50%' },
+                            },
+                        }
+                    }
+                }
+            };
+        }
+    </script>
+    
+    <style>
+        /* Shared Design Styles */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+        }
+        .dark .glass-nav {
+            background: rgba(15, 23, 42, 0.7);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.7);
+        }
+        .hero-gradient {
+            background: linear-gradient(-45deg, #4361ee, #8596f6, #6366f1, #9333ea);
+            background-size: 400% 400%;
+            animation: heroGradient 15s ease infinite;
+        }
+
+        /* Full page height and centering */
+        .min-h-screen-nav {
+            min-height: calc(100vh - 80px); /* Account for the fixed header */
+            padding-top: 80px; /* Push content below fixed header */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white antialiased">
+
+    <!-- Header (Simple, Unfixed Version) -->
+    <header class="glass-nav transition-all duration-300 fixed top-0 left-0 right-0 z-50">
+        <nav class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <a href="/index" class="flex items-center gap-2 no-underline">
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
+                    <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
+                </a>
+                
+                <div class="flex items-center gap-3">
+                    <a href="/index" class="px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">
+                        Go Home
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="min-h-screen-nav flex items-center justify-center">
+        <!-- 404 Content Section -->
+        <section class="py-20 lg:py-32 bg-slate-50 dark:bg-slate-900 w-full">
+            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="max-w-xl mx-auto text-center bg-white dark:bg-slate-800 p-10 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700">
+                    
+                    <!-- Visually appealing "404" -->
+                    <h1 class="font-heading font-extrabold text-9xl text-primary-600 dark:text-primary-400">404</h1>
+                    
+                    <!-- Title -->
+                    <h2 class="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white mt-4">
+                        Page Not Found
+                    </h2>
+                    
+                    <!-- Helpful Message -->
+                    <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">
+                        The requested page could not be found. Please check the URL or use the button below to navigate back to our homepage.
+                    </p>
+                    
+                    <!-- Call to Action (Go Home) -->
+                    <div class="mt-8">
+                      <a href="/index" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-1 shadow-lg hover:shadow-primary-600/30">
+                        <i class="bi bi-house-door-fill mr-2"></i>
+                        Return to Homepage
+                      </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer (Simple, Matching Design) -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+        <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 text-center">
+            <a href="/index" class="flex items-center gap-2 justify-center no-underline mb-4">
+                <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-8 h-8 object-contain">
+                <span class="font-heading font-bold text-xl text-slate-900 dark:text-white">Trace'N Find</span>
+            </a>
+            <div class="text-sm text-slate-500 dark:text-slate-400">
+                &copy; 2025 Trace'N Find. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Theme Toggle (Floating - No JS module included for this page, static toggle only) -->
+    <button type="button" id="theme-toggle" class="fixed bottom-6 right-6 z-40 p-3 rounded-full bg-white dark:bg-slate-800 shadow-lg text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" aria-label="Toggle theme" onclick="
+        document.documentElement.classList.toggle('dark');
+        document.documentElement.setAttribute('data-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        localStorage.setItem('theme', document.documentElement.getAttribute('data-theme'));
+    ">
+        <i class="bi bi-moon-fill text-xl block dark:hidden"></i>
+        <i class="bi bi-sun-fill text-xl hidden dark:block"></i>
+    </button>
+</body>
+</html>

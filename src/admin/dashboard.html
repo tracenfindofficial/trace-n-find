@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Dashboard - Trace'N Find: Smart Tracking for Lost & Stolen Devices">
+    <title>Dashboard - Trace'N Find</title>
+
+    <!-- 
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+    -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          console.warn('Could not apply theme from localStorage:', e);
+        }
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 
+      INTEGRATION FIX: Added Leaflet and MarkerCluster CDN links.
+      These are required by dashboard-logic.js to show the map.
+    -->
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- END INTEGRATION FIX -->
+
+    <!-- Bootstrap Icons (for icons) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- INTEGRATION FIX: Favicon path is now root-relative. -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <style>
+        /* ==========================================================================
+           1. Core Theme & Variables
+           ========================================================================== */
+        
+        :root {
+            /* HSL values for easy opacity changes (e.g., rgba(var(--color-primary-rgb), 0.1)) */
+            --color-primary-rgb: 67, 97, 238;
+            --color-success-rgb: 40, 167, 69;   /* Official Success */
+            --color-warning-rgb: 255, 193, 7;  /* Official Warning */
+            --color-danger-rgb: 220, 53, 69;   /* Official Danger */
+            --color-info-rgb: 23, 162, 184;    /* Official Info */
+            
+            --color-primary: rgb(var(--color-primary-rgb));
+            --color-success: rgb(var(--color-success-rgb));
+            --color-warning: rgb(var(--color-warning-rgb));
+            --color-danger: rgb(var(--color-danger-rgb));
+
+            /* Light Theme */
+            --color-bg: #f1f5f9; /* slate-100 */
+            --color-bg-sidebar: #ffffff;
+            --color-bg-card: #ffffff;
+            --color-text-primary: #1e293b; /* slate-800 */
+            --color-text-secondary: #64748b; /* slate-500 */
+            --color-border: #e2e8f0; /* slate-200 */
+
+            /* Fonts */
+            --font-family-sans: 'Inter', sans-serif;
+            --font-family-heading: 'Poppins', sans-serif;
+            
+            /* Layout */
+            --sidebar-width-full: 280px;
+            --sidebar-width-mini: 80px;
+            --header-height: 70px;
+            
+            /* Transitions */
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --color-bg: #0f172a; /* slate-900 */
+            --color-bg-sidebar: #1e293b; /* slate-800 */
+            --color-bg-card: #1e293b; /* slate-800 */
+            --color-text-primary: #f1f5f9; /* slate-100 */
+            --color-text-secondary: #94a3b8; /* slate-400 */
+            --color-border: #334155; /* slate-700 */
+        }
+        
+        /* Apply base styles */
+        body {
+            font-family: var(--font-family-sans);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(var(--color-primary-rgb), 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(var(--color-primary-rgb), 0.5); }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #334155; }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* ==========================================================================
+           2. Layout: Sidebar, Header, Main
+           ========================================================================== */
+        
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: var(--sidebar-width-full);
+            background-color: var(--color-bg-sidebar);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1000;
+            transition: width 0.3s ease, transform 0.3s ease;
+        }
+
+        .sidebar-header, .sidebar-footer {
+            padding: 1.25rem 1.5rem;
+            flex-shrink: 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .sidebar-header {
+            height: var(--header-height);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+            padding: 1rem 0.75rem; /* Reduced padding for nav items */
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .sidebar-footer {
+            border-top: 1px solid var(--color-border);
+        }
+        
+        /* --- Sidebar Mini State --- */
+        .sidebar-mini {
+            width: var(--sidebar-width-mini);
+        }
+        .sidebar-mini .brand-text,
+        .sidebar-mini .nav-link-text,
+        .sidebar-mini .user-info,
+        .sidebar-mini .logout-text {
+            opacity: 0;
+            visibility: hidden;
+            width: 0;
+            transition: opacity 0.1s ease;
+        }
+        .sidebar-mini .nav-link,
+        .sidebar-mini .user-profile {
+            justify-content: center;
+        }
+        .sidebar-mini .nav-link-icon {
+            margin-right: 0;
+            font-size: 1.5rem; /* Make icons slightly larger */
+        }
+        .sidebar-mini .logout-button {
+            width: 100%;
+            justify-content: center;
+        }
+        .sidebar-mini .logo i {
+            margin-right: 0;
+        }
+        /* Tooltip for mini sidebar */
+        .sidebar-mini .nav-link {
+            position: relative;
+        }
+        .sidebar-mini .nav-link .nav-link-text {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 1rem;
+            background-color: var(--color-bg-card);
+            color: var(--color-text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--color-border);
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+            z-index: 1001;
+        }
+        .sidebar-mini .nav-link:hover .nav-link-text {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0.2s;
+        }
+        
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width-full);
+            transition: margin-left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: auto; /* Allow main content to scroll */
+        }
+        .sidebar-mini + .main-content {
+            margin-left: var(--sidebar-width-mini);
+        }
+
+        /* --- Header --- */
+        .header {
+            height: var(--header-height);
+            background-color: var(--color-bg-card);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+        
+        /* --- Main Dashboard Grid --- */
+        .dashboard-grid {
+            display: grid;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            /* Responsive grid setup */
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-areas:
+                "stat1 stat2 stat3 stat4"
+                "map map actions actions"
+                "devices devices devices notifications"
+                "security security security notifications";
+        }
+        
+        @media (max-width: 1279px) { /* xl */
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas:
+                    "stat1 stat2"
+                    "stat3 stat4"
+                    "map map"
+                    "actions actions"
+                    "devices devices"
+                    "security security"
+                    "notifications notifications";
+            }
+        }
+        
+        @media (max-width: 767px) { /* md */
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "stat1"
+                    "stat2"
+                    "stat3"
+                    "stat4"
+                    "map"
+                    "actions"
+                    "devices"
+                    "security"
+                    "notifications";
+            }
+            .header {
+                padding: 0 1rem;
+            }
+        }
+        
+        /* Assign grid areas */
+        #stat-card-total { grid-area: stat1; }
+        #stat-card-online { grid-area: stat2; }
+        #stat-card-warning { grid-area: stat3; }
+        #stat-card-offline { grid-area: stat4; }
+        #map-card { grid-area: map; }
+        #actions-card { grid-area: actions; }
+        #devices-card { grid-area: devices; }
+        #notifications-card { grid-area: notifications; }
+        #security-card { grid-area: security; }
+
+        /* Card base style */
+        .dashboard-card {
+            background-color: var(--color-bg-card);
+            border-radius: 1rem; /* 16px */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* ==========================================================================
+           3. Component Styles
+           ========================================================================== */
+           
+        /* --- Stat Cards --- */
+        .stat-card {
+            color: white;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .stat-card .stat-icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+        .stat-card .stat-label {
+            font-weight: 500;
+            opacity: 0.9;
+            font-size: 0.875rem; /* 14px */
+        }
+        .stat-card .stat-value {
+            font-size: 2.25rem; /* 36px */
+            font-weight: 700;
+            font-family: var(--font-family-heading);
+            line-height: 1;
+        }
+        .stat-card-chart {
+            position: absolute;
+            bottom: -20px;
+            right: -20px;
+            width: 120px;
+            height: 100px;
+            opacity: 0.2;
+        }
+        /* Specific Card Colors */
+        #stat-card-total { background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); }
+        #stat-card-online { background: linear-gradient(135deg, var(--color-success) 0%, #0077b6 100%); }
+        #stat-card-warning { background: linear-gradient(135deg, var(--color-warning) 0%, #fb5607 100%); }
+        #stat-card-offline { background: linear-gradient(135deg, var(--color-danger) 0%, #8338ec 100%); }
+
+
+        /* --- Map Card --- */
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 0.5rem;
+            z-index: 10;
+        }
+        
+        /*
+          **********************************************
+          * AESTHETIC FIX: This is the fix for your map. *
+          **********************************************
+          This CSS rule inverts the dark map tiles to make them
+          look correct in dark mode.
+        */
+        [data-theme="dark"] .leaflet-tile-pane {
+            filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+        }
+        
+        /* Custom Popup */
+        .leaflet-popup-content-wrapper {
+            background: var(--color-bg-card);
+            color: var(--color-text-primary);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--color-border);
+        }
+        .leaflet-popup-content {
+            margin: 1rem;
+            font-family: var(--font-family-sans);
+            min-width: 240px; /* Wider popup */
+        }
+        .leaflet-popup-tip {
+            background: var(--color-bg-card);
+            border-top-color: var(--color-border); /* Fix for dark mode */
+        }
+        [data-theme="dark"] .leaflet-popup-tip {
+            background: var(--color-bg-card);
+            box-shadow: none;
+        }
+        .leaflet-container a.leaflet-popup-close-button {
+            color: var(--color-text-secondary);
+        }
+        .leaflet-container a.leaflet-popup-close-button:hover {
+            color: var(--color-text-primary);
+        }
+        /* Custom Marker */
+        .device-marker {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        [data-theme="dark"] .device-marker {
+            border-color: var(--color-bg-card);
+        }
+        .device-marker.online { background-color: var(--color-success); }
+        .device-marker.warning { background-color: var(--color-warning); }
+        .device-marker.offline { background-color: var(--color-text-secondary); opacity: 0.7; }
+        .device-marker.lost { background-color: var(--color-danger); animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(var(--color-danger-rgb), 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(var(--color-danger-rgb), 0); }
+            100% { box-shadow: 0 0 0 0 rgba(var(--color-danger-rgb), 0); }
+        }
+        
+        /* --- Device List --- */
+        .device-list {
+            max-height: 340px;
+            overflow-y: auto;
+        }
+        .device-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--color-border);
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+        .device-item:last-child {
+            border-bottom: none;
+        }
+        .device-item:hover, .device-item.active {
+            background-color: rgba(var(--color-primary-rgb), 0.05);
+        }
+        .device-item.active {
+            box-shadow: inset 3px 0 0 0 var(--color-primary);
+        }
+        
+        /* --- Security Actions --- */
+        .security-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            font-weight: 500;
+            transition: var(--transition-smooth);
+            text-decoration: none;
+        }
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .action-button:not(:disabled):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+        .action-button .bi {
+            font-size: 1.75rem;
+        }
+        .action-button.lock:hover:not(:disabled) { color: var(--color-warning); border-color: var(--color-warning); }
+        .action-button.wipe:hover:not(:disabled) { color: var(--color-danger); border-color: var(--color-danger); }
+        .action-button.camera:hover:not(:disabled) { color: var(--color-info); border-color: var(--color-info); }
+        /* Special class for "Mark as Found" */
+        .action-button.found:hover:not(:disabled) { color: var(--color-success); border-color: var(--color-success); }
+        .action-button.lost:hover:not(:disabled) { color: var(--color-danger); border-color: var(--color-danger); }
+        
+        /* --- Notifications --- */
+        .notification-list {
+            max-height: 800px; /* Taller on large screens */
+            overflow-y: auto;
+        }
+        @media (max-width: 1279px) {
+            .notification-list { max-height: 300px; } /* Shorter for tablet */
+        }
+        .notification-item {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .notification-item:last-child { border-bottom: none; }
+        
+        /* --- Filter Buttons --- */
+        .filter-btn {
+            padding: 0.375rem 1rem;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background-color: transparent;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            transition: var(--transition-smooth);
+            border-radius: 0; /* Fix for button styling */
+        }
+        .filter-btn:hover {
+            color: var(--color-text-primary);
+        }
+        .filter-btn.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+
+        /* ==========================================================================
+           4. Modals & Toasts
+           ========================================================================== */
+           
+        /* --- Toast Container --- */
+        .toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .toast { /* Renamed for clarity, base styles */
+            width: 350px;
+            max-width: 90vw;
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            background: var(--color-bg-card);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--color-border);
+            border-left-width: 4px;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s ease-in-out;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast-success { border-left-color: var(--color-success); } .toast-success .toast-icon { color: var(--color-success); }
+        .toast-error { border-left-color: var(--color-danger); } .toast-error .toast-icon { color: var(--color-danger); }
+        .toast-warning { border-left-color: var(--color-warning); } .toast-warning .toast-icon { color: var(--color-warning); }
+        .toast-info { border-left-color: var(--color-info); } .toast-info .toast-icon { color: var(--color-info); }
+
+        .toast-icon { font-size: 1.25rem; margin-top: 0.125rem; }
+        .toast-content { flex: 1; }
+        .toast-title { font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-primary); }
+        .toast-message { font-size: 0.9rem; color: var(--color-text-secondary); }
+
+        /* --- Modal --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: var(--color-bg-card);
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            /* LINTER FIX: Replaced 'max-w' with 'max-width' */
+            max-width: 500px; 
+            padding: 1.5rem;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: var(--transition-smooth);
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        /* Generic button styles for modal */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+        .btn-secondary:hover { background-color: var(--color-border); }
+        .btn-danger { background-color: var(--color-danger); color: white; }
+        .btn-warning { background-color: var(--color-warning); color: var(--color-text-primary); }
+        .btn-info { background-color: var(--color-info); color: white; }
+        .btn-success { background-color: var(--color-success); color: white; }
+
+        /* ==========================================================================
+           5. Full-Page Preloader
+           ========================================================================== */
+        #app-preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--color-bg);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(var(--color-primary-rgb), 0.2);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+           
+        /* ==========================================================================
+           6. Mobile & Responsive Adjustments
+           ========================================================================== */
+           
+        @media (max-width: 1023px) { /* lg */
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+    </style>
+
+    <!-- Tailwind Config (for custom fonts and colors) -->
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        /* Tailwind needs to be aware of the CSS variables */
+                        primary: {
+                            light: 'rgba(var(--color-primary-rgb), 0.1)',
+                            DEFAULT: 'rgb(var(--color-primary-rgb))',
+                            '500': 'rgb(var(--color-primary-rgb))', // Allow usage like text-primary-500
+                            '600': '#4361ee', // A specific shade
+                            '700': '#3a50d0'
+                        },
+                        success: 'rgb(var(--color-success-rgb))',
+                        warning: 'rgb(var(--color-warning-rgb))',
+                        danger: 'rgb(var(--color-danger-rgb))',
+                        info: 'rgb(var(--color-info-rgb))',
+                        'bg-primary': 'var(--color-bg)',
+                        'bg-card': 'var(--color-bg-card)',
+                        'bg-sidebar': 'var(--color-bg-sidebar)',
+                        'text-primary': 'var(--color-text-primary)',
+                        'text-secondary': 'var(--color-text-secondary)',
+                        'border-color': 'var(--color-border)',
+                        // Dark mode specific colors for Tailwind
+                        'dark-bg-primary': '#0f172a',
+                        'dark-bg-card': '#1e293b',
+                        'dark-text-primary': '#f1f5f9',
+                        'dark-text-secondary': '#94a3b8',
+                        'dark-border-color': '#334155',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bg-primary font-sans text-text-primary dark:bg-dark-bg-primary dark:text-dark-text-primary">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary text-white">Skip to main content</a>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <!-- ACCESSIBILITY FIX: Added aria-label -->
+            <button id="modalClose" aria-label="Close modal" class="absolute top-4 right-4 text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            <h3 id="modalTitle" class="text-xl font-heading font-bold mb-2 text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
+            <p id="modalMessage" class="text-text-secondary dark:text-dark-text-secondary mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modalCancel" class="btn btn-secondary py-2 px-4 rounded-lg font-semibold">Cancel</button>
+                <button id="modalConfirm" class="btn btn-danger py-2 px-4 rounded-lg font-semibold text-white">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- UI/UX FIX: Screenshot Modal (required by dashboard-logic.js) -->
+    <div id="screenshotModal" class="modal-overlay">
+        <div class="modal-content max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Device Screenshot</h3>
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
+                <button id="screenshotCloseBtn" aria-label="Close screenshot modal" class="text-2xl text-text-secondary dark:text-dark-text-secondary">&times;</button>
+            </div>
+            <div id="screenshotBody" class="text-center">
+                <!-- Loading state -->
+                <div id="screenshotSpinner" class="py-12">
+                    <div class="spinner w-12 h-12 mx-auto"></div>
+                    <p class="mt-4 text-text-secondary dark:text-dark-text-secondary">Capturing screenshot...</p>
+                </div>
+                <!-- Image state -->
+                <img id="screenshotImage" class="rounded-lg w-full h-auto hidden" alt="Device screenshot">
+                <p id="screenshotTimestamp" class="mt-3 text-sm text-text-secondary dark:text-dark-text-secondary"></p>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="screenshotDownloadBtn" class="btn bg-primary text-white hidden">
+                    <i class="bi bi-download mr-2"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Full App Preloader (for auth check) -->
+    <div id="app-preloader">
+        <div class="spinner"></div>
+        <p class="mt-4 text-text-secondary dark:text-dark-text-secondary">Authenticating...</p>
+    </div>
+
+    <div class="app-container">
+        <!-- ======================================================================
+             SIDEBAR
+             ====================================================================== -->
+        <aside id="sidebar" class="sidebar -translate-x-full lg:translate-x-0">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6">
+                <!-- INTEGRATION FIX: Root-relative path -->
+                <a href="/admin" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary no-underline overflow-hidden whitespace-nowrap">
+                    <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary p-2 rounded-lg"></i>
+                    <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
+                </a>
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
+                <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all text-xl">
+                    <i class="bi bi-chevron-bar-left"></i>
+                </button>
+            </div>
+
+            <!-- Sidebar Navigation -->
+            <nav class="sidebar-nav">
+                <ul class="flex flex-col gap-1">
+                    <!-- INTEGRATION FIX: Root-relative paths -->
+                    <li>
+                        <a href="/admin" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary bg-primary-light font-medium no-underline">
+                            <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">My Devices</span>
+                            <!-- UI/UX FIX: Added device count badge -->
+                            <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./map-view.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-map nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Full Map</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./geofencing.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Geofencing</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./security-actions.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-shield-lock nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Security</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./location-history.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-clock-history nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">History</span>
+                        </a>
+                    </li>
+                     <li>
+                        <a href="./backup.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-database-down nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Backup & Restore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./settings.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-gear nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="./support.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-question-circle nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Support</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer px-6 py-4">
+                <div class="user-profile flex items-center gap-3 mb-4">
+                    <img src="https://ui-avatars.com/api/?name=U&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-10 h-10 rounded-full flex-shrink-0">
+                    <div class="user-info overflow-hidden">
+                        <div class="user-name-display font-semibold text-text-primary dark:text-dark-text-primary truncate">Loading...</div>
+                        <div id="userEmail" class="user-role text-sm text-text-secondary dark:text-dark-text-secondary truncate">...</div>
+                    </div>
+                </div>
+                <!-- ACCESSIBILITY FIX: Added aria-label for mini sidebar -->
+                <button id="logoutButton" aria-label="Logout" class="logout-button w-full flex items-center gap-3 py-3 px-4 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all">
+                    <i class="bi bi-box-arrow-right nav-link-icon text-lg w-8"></i>
+                    <span class="logout-text font-medium">Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ======================================================================
+             MAIN CONTENT
+             ====================================================================== -->
+        <div class="main-content" id="main-content-area">
+            <!-- Header -->
+            <header class="header flex items-center justify-between px-6">
+                <!-- Mobile Menu Toggle -->
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
+                <button id="mobileMenuToggle" aria-label="Open navigation menu" class="lg:hidden text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <!-- Header Title -->
+                <h1 class="hidden md:block text-2xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Dashboard</h1>
+                
+                <!-- Header Actions (Search, Notifications, User) -->
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden sm:block">
+                        <label for="searchInput" class="sr-only">Search devices</label>
+                        <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary dark:text-dark-text-secondary"></i>
+                        <input type="text" id="searchInput" class="bg-bg-primary dark:bg-dark-bg-primary border border-border-color dark:border-dark-border-color rounded-full py-2 pl-10 pr-4 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Search devices...">
+                    </div>
+                    
+                    <!-- ACCESSIBILITY FIX: Added aria-label -->
+                    <button id="themeToggle" aria-label="Toggle theme" class="text-xl text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all">
+                        <!-- Icon state is now synced by app-shell.js -->
+                        <i class="bi bi-moon-fill"></i>
+                    </button>
+
+                    <!-- INTEGRATION FIX: Root-relative path -->
+                    <a href="./notifications.html" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all">
+                        <i class="bi bi-bell"></i>
+                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                    </a>
+                    
+                    <div class="relative">
+                        <!-- ACCESSIBILITY FIX: Added aria-label -->
+                        <button id="userMenuToggle" aria-label="Open user menu" class="block w-10 h-10 rounded-full hover:ring-2 hover:ring-primary transition-all">
+                            <img src="https://ui-avatars.com/api/?name=U&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-full h-full rounded-full">
+                        </button>
+                        <!-- User Dropdown -->
+                        <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
+                            <div class="px-4 py-3 border-b border-border-color dark:border-dark-border-color">
+                                <span class="block text-sm font-medium text-text-primary dark:text-dark-text-primary truncate user-name-display">Loading...</span>
+                            </div>
+                            <!-- INTEGRATION FIX: Root-relative paths -->
+                            <a href="./profile.html" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
+                            <a href="./settings.html" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Settings</a>
+                            <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-100 dark:hover:bg-red-900/30">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Dashboard Grid -->
+            <main class="dashboard-grid" id="main-content">
+
+                <!-- Stat Card: Total Devices -->
+                <div id="stat-card-total" class="stat-card dashboard-card">
+                    <div class="stat-icon"><i class="bi bi-device-phone"></i></div>
+                    <div class="stat-label">Total Devices</div>
+                    <div id="totalDevices" class="stat-value">0</div>
+                    <div class="stat-card-chart">
+                        <canvas id="totalDevicesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Stat Card: Online -->
+                <div id="stat-card-online" class="stat-card dashboard-card">
+                    <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+                    <div class="stat-label">Online</div>
+                    <div id="onlineDevices" class="stat-value">0</div>
+                    <div class="stat-card-chart">
+                        <canvas id="onlineDevicesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Stat Card: Warning (Low Battery) -->
+                <div id="stat-card-warning" class="stat-card dashboard-card">
+                    <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+                    <div class="stat-label">Low Battery</div>
+                    <div id="warningDevices" class="stat-value">0</div>
+                    <div class="stat-card-chart">
+                        <canvas id="warningDevicesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Stat Card: Offline -->
+                <div id="stat-card-offline" class="stat-card dashboard-card">
+                    <div class="stat-icon"><i class="bi bi-x-circle"></i></div>
+                    <div class="stat-label">Offline / Lost</div>
+                    <div id="offlineDevices" class="stat-value">0</div>
+                    <div class="stat-card-chart">
+                        <canvas id="offlineDevicesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Map Card -->
+                <div id="map-card" class="dashboard-card p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Device Locations</h2>
+                        <!-- INTEGRATION FIX: Root-relative path -->
+                        <a href="./map-view.html" class="text-sm font-medium text-primary hover:underline no-underline">Full Map <i class="bi bi-box-arrow-up-right ml-1"></i></a>
+                    </div>
+                    <div id="map" class="rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+                </div>
+
+                <!-- Security Actions Card -->
+                <div id="actions-card" class="dashboard-card p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Quick Actions</h2>
+                        <!-- INTEGRATION FIX: Root-relative path -->
+                        <a href="./security-actions.html" class="text-sm font-medium text-primary hover:underline no-underline">All Actions <i class="bi bi-arrow-right ml-1"></i></a>
+                    </div>
+                    <p id="actions-prompt" class="text-sm text-text-secondary dark:text-dark-text-secondary mb-4">Select a device from the list to enable quick actions.</p>
+                    <div class="security-actions-grid">
+                        <button id="action-lock" class="action-button lock" disabled>
+                            <i class="bi bi-lock text-yellow-500"></i>
+                            <span>Lock Device</span>
+                        </button>
+                        <button id="action-wipe" class="action-button wipe" disabled>
+                            <i class="bi bi-trash text-red-500"></i>
+                            <span>Wipe Device</span>
+                        </button>
+                        <button id="action-camera" class="action-button camera" disabled>
+                            <i class="bi bi-camera text-blue-500"></i>
+                            <span>Capture Photo</span>
+                        </button>
+                        <button id="action-lost" class="action-button lost" disabled>
+                            <i class="bi bi-exclamation-diamond text-red-500"></i>
+                            <span>Mark as Lost</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Your Devices Card -->
+                <div id="devices-card" class="dashboard-card p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Your Devices</h2>
+                        <!-- INTEGRATION FIX: Root-relative path -->
+                        <a href="./devices.html" class="text-sm font-medium text-primary hover:underline no-underline">Manage All <i class="bi bi-arrow-right ml-1"></i></a>
+                    </div>
+                    <!-- Filters -->
+                    <div id="filter-buttons" class="flex gap-2 mb-4 border-b border-border-color dark:border-dark-border-color">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="online">Online</button>
+                        <button class="filter-btn" data-filter="warning">Warning</button>
+                        <button class="filter-btn" data-filter="offline">Offline</button>
+                        <button class="filter-btn" data-filter="lost">Lost</button>
+                    </div>
+                    <div id="devicesList" class="device-list">
+                        <!-- UI/UX FIX: Rich Empty State -->
+                        <div class="p-4 text-center text-text-secondary dark:text-dark-text-secondary">
+                            <i class="bi bi-box text-4xl mb-2"></i>
+                            <p class="font-medium">No devices found</p>
+                            <!-- INTEGRATION FIX: Root-relative path -->
+                            <p class="text-sm">Try changing your filter or <a href="./add-device.html" class="text-primary-600 font-medium">add a new device</a>.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Card -->
+                <div id="notifications-card" class="dashboard-card p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Activity</h2>
+                        <!-- INTEGRATION FIX: Root-relative path -->
+                        <a href="./notifications.html" class="text-sm font-medium text-primary hover:underline no-underline">View All <i class="bi bi-arrow-right ml-1"></i></a>
+                    </div>
+                    <div id="notificationsList" class="notification-list">
+                        <!-- UI/UX FIX: Rich Empty State -->
+                        <div class="p-4 text-center text-text-secondary dark:text-dark-text-secondary">
+                            <i class="bi bi-bell-slash text-4xl mb-2"></i>
+                            <p class="font-medium">All clear!</p>
+                            <p class="text-sm">You have no new notifications.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Security Card -->
+                <div id="security-card" class="dashboard-card p-4">
+                    <h2 class="text-xl font-heading font-semibold mb-4 text-text-primary dark:text-dark-text-primary">Security Overview</h2>
+                    <div class="flex items-center gap-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700">
+                        <i class="bi bi-shield-check text-3xl text-green-600"></i>
+                        <div>
+                            <h3 class="font-semibold text-green-800 dark:text-green-100">All Systems Secure</h3>
+                            <p class="text-sm text-green-700 dark:text-green-200">Your account and devices are fully protected.</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <!-- INTEGRATION FIX: Root-relative paths -->
+                        <a href="./profile.html" class="flex justify-between items-center p-3 rounded-lg hover:bg-bg-primary dark:hover:bg-slate-700/50 transition-colors no-underline">
+                            <span class="font-medium text-text-primary dark:text-dark-text-primary"><i class="bi bi-person-check-fill mr-2 text-primary"></i>Two-Factor Auth</span>
+                            <span class="font-medium text-green-600">Enabled</span>
+                        </a>
+                        <a href="./security-actions.html" class="flex justify-between items-center p-3 rounded-lg hover:bg-bg-primary dark:hover:bg-slate-700/50 transition-colors no-underline">
+                            <span class="font-medium text-text-primary dark:text-dark-text-primary"><i class="bi bi-clock-history mr-2 text-primary"></i>Login History</span>
+                            <i class="bi bi-chevron-right text-text-secondary dark:text-dark-text-secondary"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- 
+      ======================================================================
+      JAVASCRIPT
+      ====================================================================== 
+    -->
+    
+    <!-- 
+      INTEGRATION FIX: All paths are now root-relative.
+      PERFORMANCE FIX: Leaflet/Chart.js scripts are removed and
+      are now loaded by app-shell.js.
+    -->
+
+    <!-- app-shell.js: Handles global logic -->
+    <script type="module" src="/admin/js/admin-app-shell.js"></script>
+    
+    <!-- map-tiles.js: Contains the light/dark mode map tile URLs. -->
+    <script type="module" src="/public/js/map-tiles.js"></script>
+    
+    <!-- dashboard-logic.js: Handles logic *only* for this page. -->
+    <script type="module" src="/admin/js/admin-dashboard-logic.js"></script>
+    
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="description" content="Register a new account for Trace'N Find - Secure your devices with real-time tracking." />
+    <title>Sign Up - Trace'N Find</title>
+
+    <!-- Add reCAPTCHA Enterprise Script -->
+    <script src="https://www.google.com/recaptcha/enterprise.js?render=6LdnxQcsAAAAAOQl5jTa-VhC4aek_xTzDqSTp6zI"></script>
+    
+    <!-- 
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+    -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          console.warn('Could not apply theme from localStorage:', e);
+        }
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- FIXED PATH: Using relative path up one level to access assets/ -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <script>
+        // Custom Tailwind Configuration (Consistent with index.html)
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: ['selector', '[data-theme="dark"]'], // Match new theme script
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                            heading: ['Poppins', 'sans-serif'],
+                        },
+                        colors: {
+                            primary: {
+                                '50': '#f0f2fe',
+                                '100': '#e0e6fd',
+                                '200': '#c8d2fb',
+                                '300': '#a7b7f9',
+                                '400': '#8596f6',
+                                '500': '#6772f4',
+                                '600': '#4361ee',
+                                '700': '#3a50d0',
+                                '800': '#3042a9',
+                                '900': '#2a3a85',
+                                '950': '#1a2353',
+                            },
+                            success: {
+                                '500': '#10b981',
+                            },
+                            slate: { '700': '#334155', '800': '#1e293b', '900': '#0f172a' }
+                        },
+                        keyframes: {
+                            gradientMove: {
+                                '0%, 100%': { backgroundPosition: '0% 50%' },
+                                '50%': { backgroundPosition: '100% 50%' },
+                            },
+                            deviceWallScroll: {
+                                '0%': { transform: 'translateY(0)' },
+                                '100%': { transform: 'translateY(calc(-1 * 80px))' },
+                            },
+                        },
+                        animation: {
+                            gradientMove: 'gradientMove 15s ease infinite',
+                            deviceWallScroll: 'deviceWallScroll 30s linear infinite',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Animated Gradient Background */
+        .gradient-bg {
+            background: linear-gradient(45deg, 
+                #f0f2fe, /* theme('colors.primary.50') */
+                #f8fafc, /* theme('colors.slate.50') */
+                #e0e6fd  /* theme('colors.primary.100') */
+            );
+            background-size: 400% 400%;
+            animation: gradientMove 15s ease infinite;
+        }
+
+        html.dark .gradient-bg {
+            background: linear-gradient(45deg, 
+                #1a2353, /* theme('colors.primary.950') */
+                #0f172a, /* theme('colors.slate.900') */
+                #2a3a85  /* theme('colors.primary.900') */
+            );
+            background-size: 400% 400%;
+        }
+
+        /* "Device Wall" Hero Background */
+        .device-wall {
+            --device-size: 80px;
+            background-image: 
+                radial-gradient(circle at center, rgba(255,255,255,0.1) 1px, transparent 1px),
+                radial-gradient(circle at center, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: var(--device-size) var(--device-size);
+            background-position: 0 0, calc(var(--device-size) / 2) calc(var(--device-size) / 2);
+            animation: deviceWallScroll 30s linear infinite;
+        }
+
+        /* Progress Bar */
+        #progress-bar-1, #progress-bar-2 {
+            height: 4px;
+            transition: border-color 0.4s ease-in-out;
+        }
+
+        /* Step Transition */
+        .step {
+            opacity: 0;
+            transform: translateX(100%);
+            position: absolute;
+            width: 100%;
+            top: 0;
+            left: 0;
+            transition: all 0.4s ease-in-out;
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        .step.active {
+            opacity: 1;
+            transform: translateX(0);
+            position: relative;
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        .step.exiting {
+            opacity: 0;
+            transform: translateX(-100%);
+            position: absolute;
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        /* Custom Spinner */
+        .button-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notification Styles */
+        .toast {
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s ease-in-out;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900">
+
+    <!-- REQUIRED: Container for reCAPTCHA (used for MFA enrollment) -->
+    <div id="recaptcha-container"></div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-6 right-6 z-[9999] flex flex-col gap-3">
+        <!-- Toasts will be injected here by auth.js -->
+    </div>
+
+    <!-- Register Container -->
+    <div class="flex items-center justify-center min-h-screen p-4 gradient-bg">
+        <div class="w-full max-w-5xl grid md:grid-cols-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            
+            <!-- Left Hero Panel -->
+            <div class="login-hero relative hidden md:flex flex-col justify-center p-12 bg-primary-600 text-white overflow-hidden">
+                <div class="device-wall absolute inset-0 z-0 opacity-10"></div>
+                <div class="relative z-10">
+                    <!-- FIXED PATH: Link back to the main public index page -->
+                    <a class="flex items-center gap-2 mb-8" href="/" aria-label="Trace'N Find homepage">
+                        <img src="/public/assets/images/transp white.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
+                        <span class="font-heading font-bold text-2xl">Trace'N Find</span>
+                    </a>
+                    <h1 class="font-heading font-extrabold text-4xl leading-tight mb-4">
+                        Secure Your Future.
+                    </h1>
+                    <p class="text-lg text-primary-100 opacity-90 mb-8">
+                        Join us and gain full control over the security and tracking of all your electronic assets.
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex items-center gap-3">
+                            <i class="bi bi-check-circle-fill text-xl text-primary-300"></i>
+                            <span class="text-primary-50">Military-Grade Encryption</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="bi bi-check-circle-fill text-xl text-primary-300"></i>
+                            <span class="text-primary-50">Fast, Multi-Step Setup</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="bi bi-check-circle-fill text-xl text-primary-300"></i>
+                            <span class="text-primary-50">Zero Cost, Full Features</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Form Panel -->
+            <div class="form-panel p-8 sm:p-12 flex flex-col justify-center relative min-h-[450px]">
+                <div class="w-full max-w-md mx-auto">
+                    
+                    <!-- Form Header -->
+                    <div class="text-left mb-8">
+                        <h2 class="font-heading font-extrabold text-3xl text-slate-900 dark:text-white">
+                            Create Your Account
+                        </h2>
+                        <p class="text-slate-600 dark:text-slate-300 mt-2">
+                            Already have an account? 
+                            <!-- FIXED PATH: Link to the login page in the same folder -->
+                            <a href="/login" class="font-semibold text-primary-600 dark:text-primary-400 hover:underline">
+                                Sign in here
+                            </a>
+                        </p>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="flex items-center mb-10">
+                        <div class="flex flex-col items-center">
+                            <span id="step-dot-1" class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm bg-primary-600 text-white transition-colors duration-400">1</span>
+                            <span class="text-xs mt-1 text-primary-600 font-medium">Credentials</span>
+                        </div>
+                        <div class="flex-1 border-t-4 border-slate-300 dark:border-slate-600 transition-colors duration-400" id="progress-bar-1"></div>
+                        <div class="flex flex-col items-center">
+                            <span id="step-dot-2" class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors duration-400">2</span>
+                            <span class="text-xs mt-1 text-slate-500 dark:text-slate-400 font-medium">MFA Setup</span>
+                        </div>
+                        <div class="flex-1 border-t-4 border-slate-300 dark:border-slate-600 transition-colors duration-400" id="progress-bar-2"></div>
+                        <div class="flex flex-col items-center">
+                            <span id="step-dot-3" class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors duration-400"><i class="bi bi-check"></i></span>
+                            <span class="text-xs mt-1 text-slate-500 dark:text-slate-400 font-medium">Complete</span>
+                        </div>
+                    </div>
+
+                    <!-- Form Content Wrapper for Steps -->
+                    <div class="relative min-h-[300px]">
+                        <!-- STEP 1: Credentials -->
+                        <div id="step1" class="step active">
+                            <form id="registerFormStep1">
+                                <!-- Username -->
+                                <div class="mb-4">
+                                    <label for="username" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Username</label>
+                                    <input type="text" id="username" class="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="unique_name" required>
+                                    <div id="username-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                                </div>
+
+                                <!-- Email -->
+                                <div class="mb-4">
+                                    <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Email Address</label>
+                                    <input type="email" id="email" class="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="you@example.com" required>
+                                </div>
+
+                                <!-- Password -->
+                                <div class="mb-4">
+                                    <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Password</label>
+                                    <div class="relative">
+                                        <input type="password" id="password" class="w-full pr-10 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="••••••••" required>
+                                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary-600" id="passwordToggle" aria-label="Show password">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                        <div id="password-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Password Strength and Requirements -->
+                                <div class="mb-6 bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <div class="text-xs font-medium text-slate-700 dark:text-slate-200">Strength:</div>
+                                        <div id="passwordStrengthText" class="text-xs text-slate-500 font-medium"></div>
+                                    </div>
+                                    <div class="w-full h-1 bg-slate-200 rounded-full">
+                                        <div id="passwordStrengthBar" class="h-full w-0 bg-danger-500 rounded-full transition-all duration-300"></div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                                        <div id="lengthReq" class="text-slate-500 flex items-center invalid">
+                                            <i class="bi bi-x-circle mr-1.5"></i> Min 8 Characters
+                                        </div>
+                                        <div id="uppercaseReq" class="text-slate-500 flex items-center invalid">
+                                            <i class="bi bi-x-circle mr-1.5"></i> Uppercase Letter
+                                        </div>
+                                        <div id="lowercaseReq" class="text-slate-500 flex items-center invalid">
+                                            <i class="bi bi-x-circle mr-1.5"></i> Lowercase Letter
+                                        </div>
+                                        <div id="numberReq" class="text-slate-500 flex items-center invalid">
+                                            <i class="bi bi-x-circle mr-1.5"></i> One Number
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <!-- Terms Checkbox -->
+                                <div class="flex items-center mb-6">
+                                    <input type="checkbox" id="termsCheckbox" class="h-4 w-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500">
+                                    <label for="termsCheckbox" class="ml-2 block text-sm text-slate-700 dark:text-slate-300">
+                                        I agree to the 
+                                        <!-- FIXED PATH: Using relative path up one level -->
+                                        <a href="/terms-of-service" class="font-medium text-primary-600 dark:text-primary-400 hover:underline" target="_blank">Terms</a> and 
+                                        <!-- FIXED PATH: Using relative path up one level -->
+                                        <a href="/privacy-policy" class="font-medium text-primary-600 dark:text-primary-400 hover:underline" target="_blank">Privacy Policy</a>.
+                                    </label>
+                                </div>
+
+                                <!-- Next Step Button -->
+                                <button type="button" class="w-full inline-flex items-center justify-center px-6 py-3.5 border border-transparent rounded-full font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-primary-600/30 disabled:bg-slate-400 disabled:shadow-none disabled:transform-none" id="nextToStep2" disabled>
+                                    Next Step
+                                </button>
+                                
+                                <!-- Divider -->
+                                <div class="flex items-center my-6">
+                                    <div class="flex-grow border-t border-slate-300 dark:border-slate-600"></div>
+                                    <span class="mx-4 flex-shrink text-sm text-slate-500 dark:text-slate-400">or sign up with</span>
+                                    <div class="flex-grow border-t border-slate-300 dark:border-slate-600"></div>
+                                </div>
+
+                                <!-- Social Logins -->
+                                <div class="grid grid-cols-1 gap-4">
+                                    <button type="button" id="googleBtn" class="w-full inline-flex items-center justify-center px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
+                                        <i class="bi bi-google text-red-500 text-xl mr-2"></i>
+                                        Google
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- STEP 2: MFA Setup (Phone) -->
+                        <div id="step2" class="step">
+                            <div class="text-center mb-8">
+                                <i class="bi bi-shield-check text-6xl text-primary-600 dark:text-primary-400"></i>
+                                <h3 class="font-heading font-extrabold text-2xl text-slate-900 dark:text-white mt-4">
+                                    Setup Multi-Factor Auth (Optional)
+                                </h3>
+                                <p class="text-slate-600 dark:text-slate-300 mt-2">
+                                    Add your phone number for secure password recovery and enhanced security.
+                                </p>
+                            </div>
+                            <form id="registerFormStep2">
+                                <div class="mb-6">
+                                    <label for="phone" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Phone Number</label>
+                                    <input type="tel" id="phone" class="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="+60 12-345 6789">
+                                </div>
+
+                                <button type="button" class="w-full inline-flex items-center justify-center px-6 py-3.5 border border-transparent rounded-full font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-primary-600/30 disabled:bg-slate-400 disabled:shadow-none disabled:transform-none" id="createAccountBtn">
+                                    <span class="button-text">Create Account & Enroll MFA</span>
+                                    <span class="button-spinner hidden"></span>
+                                </button>
+                                
+                                <button type="button" class="w-full inline-flex items-center justify-center mt-3 px-6 py-3.5 border border-slate-300 dark:border-slate-600 rounded-full font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-300" id="skipMfaBtn">
+                                    Skip for now
+                                </button>
+                                
+                                <button type="button" class="w-full mt-3 text-sm text-primary-600 dark:text-primary-400 hover:underline" id="backToStep1">
+                                    <i class="bi bi-arrow-left-short"></i> Back to Credentials
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- STEP 3: Complete -->
+                        <div id="step3" class="step">
+                            <div class="text-center py-10">
+                                <i class="bi bi-check-circle-fill text-8xl text-success-500 animate-pulse"></i>
+                                <h3 class="font-heading font-extrabold text-3xl text-slate-900 dark:text-white mt-6">
+                                    Account Created!
+                                </h3>
+                                <p class="text-slate-600 dark:text-slate-300 mt-2">
+                                    Welcome, <span id="welcome-username" class="font-semibold text-primary-600 dark:text-primary-400">User</span>. Redirecting you to the dashboard...
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle (Floating) -->
+    <button type="button" id="theme-toggle" class="fixed bottom-6 right-6 z-40 p-3 rounded-full bg-white dark:bg-slate-800 shadow-lg text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" aria-label="Toggle theme">
+        <i class="bi bi-sun-fill text-xl block dark:hidden"></i>
+        <i class="bi bi-moon-fill text-xl hidden dark:block"></i>
+    </button>
+
+    <!-- 
+        SCALABILITY & INTEGRATION FIX:
+        This page is now powered by the central auth.js module.
+    -->
+    <script src="/public/js/auth.js" type="module"></script>
+    
+</body>
+</html>

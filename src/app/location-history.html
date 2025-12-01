@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" class="h-full overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Location History - Trace'N Find: Smart Tracking for Lost & Stolen Devices">
+    <title>Location History - Trace'N Find</title>
+    
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          console.warn('Could not apply theme from localStorage:', e);
+        }
+      })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+    
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                            '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                            '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                        },
+                        success: 'var(--color-success)',
+                        warning: 'var(--color-warning)',
+                        danger: 'var(--color-danger)',
+                        info: 'var(--color-info)',
+                        'bg-primary': 'var(--color-bg-primary)',
+                        'bg-card': 'var(--color-bg-card)',
+                        'bg-sidebar': 'var(--color-bg-sidebar)',
+                        'text-primary': 'var(--color-text-primary)',
+                        'text-secondary': 'var(--color-text-secondary)',
+                        'border-color': 'var(--color-border)',
+                        'dark-bg-primary': '#0f172a',
+                        'dark-bg-card': '#1e293b',
+                        'dark-bg-sidebar': 'rgba(30, 41, 59, 0.8)',
+                        'dark-text-primary': '#f1f5f9',
+                        'dark-text-secondary': '#94a3b8',
+                        'dark-border-color': '#334155',
+                    },
+                    spacing: {
+                        'sidebar-full': '280px',
+                        'sidebar-mini': '80px',
+                        'header': '70px',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            'from': { opacity: '0', transform: 'translateY(10px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+        }
+        
+        /* App Layout Styles (from app-shell.js) */
+        :root {
+            --sidebar-width-full: 280px;
+            --sidebar-width-mini: 80px;
+            --header-height: 70px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* CSS variables for JS */
+            --color-bg-primary: #f1f5f9;
+            --color-bg-card: #ffffff;
+            --color-bg-sidebar: rgba(255, 255, 255, 0.8);
+            --color-text-primary: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --color-primary: #4361ee;
+            --color-primary-rgb: 67, 97, 238;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-danger-rgb: 239, 68, 68;
+            --color-info: #06b6d4;
+
+            --dark-bg-primary: #0f172a;
+            --dark-bg-card: #1e293b;
+            --dark-bg-sidebar: rgba(30, 41, 59, 0.8);
+            --dark-text-primary: #f1f5f9;
+            --dark-text-secondary: #94a3b8;
+            --dark-border-color: #334155;
+        }
+        
+        [data-theme="dark"] {
+            --color-bg-primary: var(--dark-bg-primary);
+            --color-bg-card: var(--dark-bg-card);
+            --color-bg-sidebar: var(--dark-bg-sidebar);
+            --color-text-primary: var(--dark-text-primary);
+            --color-text-secondary: var(--dark-text-secondary);
+            --color-border: var(--dark-border-color);
+        }
+        
+        /* Preloader */
+        #app-preloader {
+            position: fixed; inset: 0; z-index: 9999;
+            background-color: var(--color-bg-card);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 1; transition: opacity 0.3s ease;
+        }
+        .spinner {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width-full);
+            background-color: var(--color-bg-sidebar);
+            border-right: 1px solid var(--color-border);
+            flex-direction: column;
+            position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000;
+            transition: width 0.3s ease, transform 0.3s ease;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .sidebar-header { height: var(--header-height); border-bottom: 1px solid var(--color-border); }
+        .sidebar-nav { flex-grow: 1; padding: 1rem 0.75rem; overflow-y: auto; overflow-x: hidden; }
+        .sidebar-footer { border-top: 1px solid var(--color-border); }
+        .sidebar-mini { width: var(--sidebar-width-mini); }
+        .sidebar-mini .brand-text,
+        .sidebar-mini .nav-link-text,
+        .sidebar-mini .user-info,
+        .sidebar-mini .logout-text { opacity: 0; visibility: hidden; width: 0; transition: opacity 0.1s ease; }
+        .sidebar-mini .nav-link, .sidebar-mini .user-profile { justify-content: center; }
+        .sidebar-mini .nav-link-icon { margin-right: 0; font-size: 1.5rem; }
+        .sidebar-mini .logout-button { justify-content: center; }
+        .sidebar-mini .logo i { margin-right: 0; }
+        .sidebar-mini .nav-link { position: relative; }
+        .sidebar-mini .nav-link .nav-link-text {
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            margin-left: 1rem; background-color: var(--color-bg-card); color: var(--color-text-primary);
+            padding: 0.5rem 1rem; border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--color-border); white-space: nowrap;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+        }
+        .sidebar-mini .nav-link:hover .nav-link-text { opacity: 1; visibility: visible; transition-delay: 0.2s; }
+        
+        .main-content {
+            flex: 1; margin-left: var(--sidebar-width-full);
+            transition: margin-left 0.3s ease; display: flex; flex-direction: column;
+            height: 100vh;
+        }
+        .sidebar-mini + .main-content { margin-left: var(--sidebar-width-mini); }
+        
+        .header {
+            height: var(--header-height);
+            background-color: var(--color-bg-card);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky; top: 0; z-index: 999;
+            flex-shrink: 0;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        
+        /* Toast Container */
+        .toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toast { width: 350px; max-width: 90vw; padding: 1rem 1.25rem; border-radius: 0.75rem; background: var(--color-bg-card); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid var(--color-border); border-left-width: 4px; display: flex; align-items: flex-start; gap: 0.75rem; opacity: 0; transform: translateX(100%); transition: all 0.4s ease-in-out; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast-success { border-left-color: var(--color-success); } .toast-success .toast-icon { color: var(--color-success); }
+        .toast-error { border-left-color: var(--color-danger); } .toast-error .toast-icon { color: var(--color-danger); }
+        .toast-info { border-left-color: var(--color-info); } .toast-info .toast-icon { color: var(--color-info); }
+        .toast-icon { font-size: 1.25rem; margin-top: 0.125rem; }
+        .toast-content { flex: 1; } .toast-title { font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-primary); }
+        .toast-message { font-size: 0.9rem; color: var(--color-text-secondary); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--color-bg-card);
+            border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            width: 90%; max-width: 500px; padding: 1.5rem;
+            transform: scale(0.95); opacity: 0; transition: var(--transition-smooth);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
+        
+        /* Button */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+        .btn-secondary:hover { background-color: var(--color-border); }
+        .btn-danger { background-color: var(--color-danger); color: white; }
+        .btn-warning { background-color: var(--color-warning); color: var(--color-text-primary); }
+        .btn-info { background-color: var(--color-info); color: white; }
+        .btn-success { background-color: var(--color-success); color: white; }
+        .btn-primary { background-color: var(--color-primary); color: white; }
+
+        /* ==========================================================================
+           LOCATION HISTORY STYLES
+           ========================================================================== */
+
+        /* Full-height flex container for map content */
+        .history-content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            overflow: hidden;
+            padding: 1.5rem;
+            gap: 1.5rem;
+            min-height: 0;
+        }
+        
+        /* Timeline Panel */
+        .timeline-panel {
+            width: 400px;
+            flex-shrink: 0;
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            min-height: 0;
+            max-height: 100%;
+        }
+        .timeline-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .timeline-body {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 0.5rem;
+            min-height: 0;
+        }
+        .timeline-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            border-left: 4px solid transparent;
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        .timeline-item:hover {
+            background-color: rgba(var(--color-primary-rgb), 0.05);
+        }
+        .timeline-item.active {
+            background-color: rgba(var(--color-primary-rgb), 0.1);
+            border-left-color: var(--color-primary);
+        }
+        .timeline-marker {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--color-text-secondary);
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        .timeline-item.active .timeline-marker {
+            background-color: var(--color-primary);
+            transform: scale(1.1);
+        }
+        .timeline-info {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .timeline-time {
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+        .timeline-address {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .timeline-duration {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+        }
+        
+        /* Map Panel */
+        .map-panel {
+            flex-grow: 1;
+            position: relative;
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .stat-card-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        .stat-card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 1023px) {
+            .history-content-wrapper {
+                flex-direction: column;
+                height: auto; /* Allow content to grow */
+                overflow: visible;
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .timeline-panel {
+                width: 100%;
+                height: 300px; /* Fixed height for timeline on mobile */
+                max-height: 300px;
+            }
+            .map-panel {
+                width: 100%;
+                height: 400px; /* Fixed height for map on mobile */
+            }
+            .main-content {
+                overflow-y: auto; /* Allow main content to scroll on mobile */
+            }
+        }
+        
+        /* ==========================================================================
+           LEAFLET & MARKER STYLES
+           ========================================================================== */
+        
+        /* Custom Popup */
+        .leaflet-popup-content-wrapper {
+            background: var(--color-bg-card);
+            color: var(--color-text-primary);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--color-border);
+        }
+        .leaflet-popup-content {
+            margin: 1rem;
+            min-width: 200px;
+            font-family: var(--font-family-sans);
+        }
+        .leaflet-popup-tip {
+            background: var(--color-bg-card);
+        }
+        [data-theme="dark"] .leaflet-popup-tip {
+             background: var(--dark-bg-card);
+        }
+        .leaflet-container a.leaflet-popup-close-button {
+            color: var(--color-text-secondary);
+        }
+        
+        /* * FIX: Added .device-marker styles from dashboard.html
+         * This allows the map logic to render the green/online markers correctly.
+         */
+        .device-marker {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        [data-theme="dark"] .device-marker {
+            border-color: var(--color-bg-card);
+        }
+        /* Status Colors */
+        .device-marker.online { background-color: var(--color-success); }
+        .device-marker.warning { background-color: var(--color-warning); }
+        .device-marker.offline { background-color: #6c757d; opacity: 0.7; }
+        .device-marker.lost { 
+            background-color: var(--color-danger); 
+            animation: pulse 1.5s infinite; 
+        }
+
+        /* Lost Pulse Animation */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-bg-primary dark:bg-dark-bg-primary font-sans text-text-primary dark:text-dark-text-primary overflow-hidden">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary-600 text-white">Skip to main content</a>
+
+    <div id="app-preloader" class="bg-bg-card dark:bg-dark-bg-primary">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modalClose" aria-label="Close modal" class="absolute top-4 right-4 text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            <h3 id="modalTitle" class="text-xl font-heading font-bold mb-2 text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
+            <p id="modalMessage" class="text-text-secondary dark:text-dark-text-secondary mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modalCancel" class="btn bg-slate-200 dark:bg-slate-600 text-text-primary dark:text-dark-text-primary hover:bg-slate-300 dark:hover:bg-slate-500">Cancel</button>
+                <button id="modalConfirm" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container flex flex-grow-1 overflow-hidden">
+        <aside id="sidebar" class="sidebar flex -translate-x-full lg:translate-x-0">
+            <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
+                <!-- UPDATED LOGO -->
+                <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
+                    <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
+                </a>
+                <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
+                    <i class="bi bi-chevron-bar-left"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul class="flex flex-col gap-1">
+                    <li>
+                        <a href="/dashboard" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <!-- Updated Icon to bi-phone -->
+                        <a href="/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-phone nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">My Devices</span>
+                            <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/map-view" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-map nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Full Map</span>
+                        </a>
+                    </li>
+                    <li>
+                        <!-- Updated Icon to bi-geo-alt-fill -->
+                        <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Geofencing</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/security-actions" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-shield-lock nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Security</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/location-history" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary-600 dark:text-primary-400 bg-primary-light dark:bg-dark-bg-card font-medium no-underline">
+                            <i class="bi bi-clock-history nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">History</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/backup" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-database-down nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Backup & Restore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/settings" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-gear nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/support" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-question-circle nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Support</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer px-6 py-4 flex-shrink-0">
+                <div class="user-profile flex items-center gap-3 mb-4">
+                    <img src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-10 h-10 rounded-full flex-shrink-0">
+                    <div class="user-info overflow-hidden">
+                        <div class="user-name-display font-semibold text-text-primary dark:text-dark-text-primary truncate">Loading...</div>
+                        <div id="userEmail" class="user-role text-sm text-text-secondary dark:text-dark-text-secondary truncate">...</div>
+                    </div>
+                </div>
+                <button id="logoutButton" aria-label="Logout" class="logout-button w-full flex items-center gap-3 py-3 px-4 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all">
+                    <i class="bi bi-box-arrow-right nav-link-icon text-lg w-8"></i>
+                    <span class="logout-text font-medium">Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-content lg:overflow-hidden" id="main-content-area">
+            <header class="header flex items-center justify-between px-6">
+                <button id="mobileMenuToggle" aria-label="Open navigation menu" class="lg:hidden text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <h1 class="hidden md:block text-2xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Location History</h1>
+                
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="relative hidden sm:block">
+                        <label for="headerSearchInput" class="sr-only">Search</label>
+                        <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary dark:text-dark-text-secondary"></i>
+                        <input type="text" id="headerSearchInput" class="bg-bg-primary dark:bg-dark-bg-primary border border-border-color dark:border-dark-border-color rounded-full py-2 pl-10 pr-4 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 dark:focus:ring-primary-400" placeholder="Search...">
+                    </div>
+                    
+                    <button id="themeToggle" aria-label="Toggle theme" class="text-xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+                        <i class="bi bi-moon-fill"></i>
+                    </button>
+
+                    <!-- Updated Notification Bell & Badge -->
+                    <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+                        <i class="bi bi-bell"></i>
+                        <!-- FIX: Corrected bg-danger-500 to bg-danger -->
+                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                    </a>
+                    
+                    <div class="relative">
+                        <button id="userMenuToggle" aria-label="Open user menu" class="block w-10 h-10 rounded-full">
+                            <img src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-full h-full rounded-full cursor-pointer hover:ring-2 hover:ring-primary-600 dark:hover:ring-primary-400 transition-all">
+                        </button>
+                        <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
+                            <a href="/profile" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
+                            <a href="/settings" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Settings</a>
+                            <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-100 dark:hover:bg-red-900/30">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="p-6 flex-grow flex flex-col gap-6 overflow-hidden min-h-0" id="main-content">
+                
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label for="deviceFilter" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Device</label>
+                        <select id="deviceFilter" class="w-full p-2 border border-border-color dark:border-dark-border-color rounded-lg bg-bg-card dark:bg-dark-bg-card text-text-primary dark:text-dark-text-primary focus:ring-2 focus:ring-primary-600 dark:focus:ring-primary-400 focus:outline-none">
+                            <option value="">Loading Devices...</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label for="dateFilter" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Date</label>
+                        <input type="date" id="dateFilter" autocomplete="off" class="w-full p-2 border border-border-color dark:border-dark-border-color rounded-lg bg-bg-card dark:bg-dark-bg-card text-text-primary dark:text-dark-text-primary focus:ring-2 focus:ring-primary-600 dark:focus:ring-primary-400 focus:outline-none">
+                    </div>
+                    <div class="flex-shrink-0 md:self-end">
+                        <button id="refreshButton" class="w-full md:w-auto py-2 px-4 rounded-lg font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all btn-primary">
+                            <i class="bi bi-arrow-clockwise mr-2"></i> Load History
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="stat-card">
+                        <div class="stat-card-title">Total Points</div>
+                        <div id="stat-total-points" class="stat-card-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-title">Total Distance</div>
+                        <div id="stat-total-distance" class="stat-card-value">0 km</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-title">Most Visited</div>
+                        <div id="stat-most-visited" class="stat-card-value text-lg truncate">N/A</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-title">Duration</div>
+                        <div id="stat-duration" class="stat-card-value">0h 0m</div>
+                    </div>
+                </div>
+
+                <div class="history-content-wrapper flex-grow">
+                    <div class="timeline-panel">
+                        <div class="timeline-header">
+                            <h2 id="history-title-header" class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">History for Today</h2>
+                        </div>
+                        <div class="timeline-body relative">
+                            <div id="timeline-list"></div>
+
+                            <div id="timeline-empty" class="p-6 text-center text-text-secondary dark:text-dark-text-secondary absolute inset-0 flex flex-col items-center justify-center">
+                                <i class="bi bi-clock-history text-4xl mb-2"></i>
+                                <p>No location history for this day.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="map-panel relative group">
+                        <div id="map" class="z-10"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/app/js/app-shell.js" type="module"></script>
+    
+    <script src="/app/js/location-history-logic.js?v=6" type="module"></script>
+
+    <script src="/public/js/map-tiles.js" type="module"></script>
+</body>
+</html>

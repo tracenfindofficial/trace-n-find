@@ -38,7 +38,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
     <!-- INTEGRATION FIX: Root-relative path -->
-    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+    <link rel="icon" type="image/png" href="/assets/transp-BqaJdLDg.png">
     
 
     <!-- Custom Tailwind Config (from app-shell.js) -->
@@ -382,6 +382,10 @@
         }
 
     </style>
+  <script type="module" crossorigin src="/assets/add-device-FyAqydyH.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-YP0FEG5d.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-utils-DEXrBstL.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-shell-CtSII-jN.js">
 </head>
 <body class="h-full flex flex-col bg-bg-primary dark:bg-dark-bg-primary font-sans text-text-primary dark:text-dark-text-primary overflow-hidden">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary-600 text-white">Skip to main content</a>
@@ -417,7 +421,7 @@
             <!-- INTEGRATION FIX: Root-relative path -->
             <!-- LOGO CHANGE: Replaced <i> tag with <img> to use image_2c91b8.png for branding -->
             <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
-                <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
+                <img src="/assets/transp-BqaJdLDg.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                 <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
             </a>
             <!-- ACCESSIBILITY FIX: Added aria-label -->
@@ -743,11 +747,9 @@
       PERFORMANCE FIX: No libraries are loaded here; app-shell.js handles it.
     -->
     
-    <!-- app-shell.js: Handles global logic -->
-    <script src="/app/js/app-shell.js" type="module"></script>
+    <!-- app-shell.js: Handles global logic -->
     
-    <!-- add-device-logic.js: Handles logic *only* for this page. -->
-    <script src="/app/js/add-device-logic.js" type="module"></script>
+    <!-- add-device-logic.js: Handles logic *only* for this page. -->
 
 </body>
 </html>

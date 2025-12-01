@@ -43,7 +43,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
     <!-- INTEGRATION FIX: Root-relative path -->
-    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+    <link rel="icon" type="image/png" href="/assets/transp-BqaJdLDg.png">
 
     <!-- Tailwind Config -->
     <script>
@@ -376,6 +376,10 @@
         }
 
     </style>
+  <script type="module" crossorigin src="/assets/profile-D7d4VXro.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-YP0FEG5d.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-utils-DEXrBstL.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-shell-CtSII-jN.js">
 </head>
 <body class="h-full flex flex-col bg-bg-primary dark:bg-dark-bg-primary font-sans text-text-primary dark:text-dark-text-primary overflow-hidden">
     <!-- REQUIRED: Container for reCAPTCHA (used for MFA verification) -->
@@ -433,7 +437,7 @@
             <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
                 <!-- Logo update: Image + Text -->
                 <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
-                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
+                    <img src="/assets/transp-BqaJdLDg.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                     <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
                 </a>
                 <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
@@ -700,13 +704,11 @@
       CORE APP SCRIPT 
       INTEGRATION FIX: All paths are now root-relative.
     -->
-    <script src="/app/js/app-shell.js" type="module"></script>
     
     <!-- 
       PAGE-SPECIFIC SCRIPT
       INTEGRATION FIX: All paths are now root-relative.
     -->
-    <script src="/app/js/profile-logic.js" type="module"></script>
 
 </body>
 </html>

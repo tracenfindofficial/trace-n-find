@@ -56,7 +56,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
     <!-- INTEGRATION FIX: Favicon path is now root-relative. -->
-    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+    <link rel="icon" type="image/png" href="/assets/transp-BqaJdLDg.png">
 
     <style>
         /* ==========================================================================
@@ -733,6 +733,11 @@
             }
         }
     </script>
+  <script type="module" crossorigin src="/assets/dashboard-wnmN8GsO.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-YP0FEG5d.js">
+  <link rel="modulepreload" crossorigin href="/assets/admin-app-shell-Cas55neG.js">
+  <link rel="modulepreload" crossorigin href="/assets/map-tiles-D1fw3GxV.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-utils-DEXrBstL.js">
 </head>
 <body class="bg-bg-primary font-sans text-text-primary dark:bg-dark-bg-primary dark:text-dark-text-primary">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary text-white">Skip to main content</a>
@@ -1102,13 +1107,10 @@
     -->
 
     <!-- app-shell.js: Handles global logic -->
-    <script type="module" src="/admin/js/admin-app-shell.js"></script>
     
     <!-- map-tiles.js: Contains the light/dark mode map tile URLs. -->
-    <script src="/public/js/map-tiles.js"></script>
     
     <!-- dashboard-logic.js: Handles logic *only* for this page. -->
-    <script type="module" src="/admin/js/admin-dashboard-logic.js"></script>
     
 </body>
 </html>

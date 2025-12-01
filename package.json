@@ -1,4 +1,12 @@
 {
+  "name": "trace-n-find",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@googlemaps/routeoptimization": "^0.6.0",
     "@tailwindcss/cli": "^4.1.17",

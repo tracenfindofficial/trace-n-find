@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" class="h-full overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Security Actions - Trace'N Find: Smart Tracking for Lost & Stolen Devices">
+    <title>Security Actions - Trace'N Find</title>
+    
+    <!-- 
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+    -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          console.warn('Could not apply theme from localStorage:', e);
+        }
+      })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Google Fonts (Inter & Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- INTEGRATION FIX: Root-relative path -->
+    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                            '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                            '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                        },
+                        // AESTHETICS FIX: Use CSS variables
+                        success: 'var(--color-success)',
+                        warning: 'var(--color-warning)',
+                        danger: 'var(--color-danger)',
+                        info: 'var(--color-info)',
+                        'bg-primary': 'var(--color-bg-primary)',
+                        'bg-card': 'var(--color-bg-card)',
+                        'bg-sidebar': 'var(--color-bg-sidebar)',
+                        'text-primary': 'var(--color-text-primary)',
+                        'text-secondary': 'var(--color-text-secondary)',
+                        'border-color': 'var(--color-border)',
+                        'dark-bg-primary': '#0f172a',
+                        'dark-bg-card': '#1e293b',
+                        'dark-bg-sidebar': 'rgba(30, 41, 59, 0.8)',
+                        'dark-text-primary': '#f1f5f9',
+                        'dark-text-secondary': '#94a3b8',
+                        'dark-border-color': '#334155',
+                    },
+                    spacing: {
+                        'sidebar-full': '280px',
+                        'sidebar-mini': '80px',
+                        'header': '70px',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            'from': { opacity: '0', transform: 'translateY(10px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+        }
+        
+        /* App Layout Styles (from app-shell.js) */
+        :root {
+            --sidebar-width-full: 280px;
+            --sidebar-width-mini: 80px;
+            --header-height: 70px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* CSS variables for JS */
+            --color-bg-primary: #f1f5f9;
+            --color-bg-card: #ffffff;
+            --color-bg-sidebar: rgba(255, 255, 255, 0.8);
+            --color-text-primary: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --color-primary: #4361ee;
+            --color-primary-rgb: 67, 97, 238;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-danger-rgb: 239, 68, 68; /* Added for delete button hover */
+            --color-info: #06b6d4;
+
+            --dark-bg-primary: #0f172a;
+            --dark-bg-card: #1e293b;
+            --dark-bg-sidebar: rgba(30, 41, 59, 0.8);
+            --dark-text-primary: #f1f5f9;
+            --dark-text-secondary: #94a3b8;
+            --dark-border-color: #334155;
+        }
+        
+        [data-theme="dark"] {
+            --color-bg-primary: var(--dark-bg-primary);
+            --color-bg-card: var(--dark-bg-card);
+            --color-bg-sidebar: var(--dark-bg-sidebar);
+            --color-text-primary: var(--dark-text-primary);
+            --color-text-secondary: var(--dark-text-secondary);
+            --color-border: var(--dark-border-color);
+        }
+        
+        /* Preloader */
+        #app-preloader {
+            position: fixed; inset: 0; z-index: 9999;
+            background-color: var(--color-bg-card);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 1; transition: opacity 0.3s ease;
+        }
+        .spinner {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width-full);
+            background-color: var(--color-bg-sidebar);
+            border-right: 1px solid var(--color-border);
+            flex-direction: column;
+            position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000;
+            transition: width 0.3s ease, transform 0.3s ease;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .sidebar-header { height: var(--header-height); border-bottom: 1px solid var(--color-border); }
+        .sidebar-nav { flex-grow: 1; padding: 1rem 0.75rem; overflow-y: auto; overflow-x: hidden; }
+        .sidebar-footer { border-top: 1px solid var(--color-border); }
+        .sidebar-mini { width: var(--sidebar-width-mini); }
+        .sidebar-mini .brand-text,
+        .sidebar-mini .nav-link-text,
+        .sidebar-mini .user-info,
+        .sidebar-mini .logout-text { opacity: 0; visibility: hidden; width: 0; transition: opacity 0.1s ease; }
+        .sidebar-mini .nav-link, .sidebar-mini .user-profile { justify-content: center; }
+        .sidebar-mini .nav-link-icon { margin-right: 0; font-size: 1.5rem; }
+        .sidebar-mini .logout-button { justify-content: center; }
+        .sidebar-mini .logo i { margin-right: 0; }
+        .sidebar-mini .nav-link { position: relative; }
+        .sidebar-mini .nav-link .nav-link-text {
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            margin-left: 1rem; background-color: var(--color-bg-card); color: var(--color-text-primary);
+            padding: 0.5rem 1rem; border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--color-border); white-space: nowrap;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+        }
+        .sidebar-mini .nav-link:hover .nav-link-text { opacity: 1; visibility: visible; transition-delay: 0.2s; }
+        
+        .main-content {
+            flex: 1; margin-left: var(--sidebar-width-full);
+            transition: margin-left 0.3s ease; display: flex; flex-direction: column;
+            height: 100vh;
+        }
+        .sidebar-mini + .main-content { margin-left: var(--sidebar-width-mini); }
+        
+        .header {
+            height: var(--header-height);
+            background-color: var(--color-bg-card);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky; top: 0; z-index: 999;
+            flex-shrink: 0;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        
+        /* Toast Container */
+        .toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toast { width: 350px; max-width: 90vw; padding: 1rem 1.25rem; border-radius: 0.75rem; background: var(--color-bg-card); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid var(--color-border); border-left-width: 4px; display: flex; align-items: flex-start; gap: 0.75rem; opacity: 0; transform: translateX(100%); transition: all 0.4s ease-in-out; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast-success { border-left-color: var(--color-success); } .toast-success .toast-icon { color: var(--color-success); }
+        .toast-error { border-left-color: var(--color-danger); } .toast-error .toast-icon { color: var(--color-danger); }
+        .toast-info { border-left-color: var(--color-info); } .toast-info .toast-icon { color: var(--color-info); }
+        .toast-icon { font-size: 1.25rem; margin-top: 0.125rem; }
+        .toast-content { flex: 1; } .toast-title { font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-primary); }
+        .toast-message { font-size: 0.9rem; color: var(--color-text-secondary); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--color-bg-card);
+            border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            width: 90%; max-width: 500px; padding: 1.5rem;
+            transform: scale(0.95); opacity: 0; transition: var(--transition-smooth);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
+        /* Generic button styles for modal */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+        .btn-secondary:hover { background-color: var(--color-border); }
+        .btn-danger { background-color: var(--color-danger); color: white; }
+        .btn-warning { background-color: var(--color-warning); color: var(--color-text-primary); }
+        .btn-info { background-color: var(--color-info); color: white; }
+        .btn-success { background-color: var(--color-success); color: white; }
+
+        /* ==========================================================================
+           SECURITY ACTIONS STYLES
+           ========================================================================== */
+
+        .security-content-wrapper {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .device-list-panel, .actions-panel {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            /* Allow panels to scroll independently on small screens */
+            max-height: calc(100vh - var(--header-height) - 3rem);
+        }
+
+        .panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .device-list-body {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        
+        .device-list-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            transition: background-color 0.2s ease;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .device-list-item:last-child {
+            border-bottom: none;
+        }
+        .device-list-item:hover {
+            background-color: rgba(var(--color-primary-rgb), 0.05);
+        }
+        
+        .device-list-item input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 0.375rem;
+            border-color: var(--color-border);
+            color: var(--color-primary);
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .device-list-item input[type="checkbox"]:focus {
+            ring: 2px solid var(--color-primary);
+            ring-offset: 0;
+        }
+         .device-list-item input[type="checkbox"]:disabled {
+            cursor: not-allowed;
+            background-color: var(--color-border);
+         }
+
+        .device-icon-wrapper {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .action-grid {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            flex-grow: 1;
+            overflow-y: auto; /* Enable scroll if actions exceed height */
+        }
+        
+        .action-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            min-height: 140px;
+        }
+        .action-card:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .action-card:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--color-border);
+        }
+        [data-theme="dark"] .action-card {
+             background-color: var(--dark-border-color);
+        }
+        [data-theme="dark"] .action-card:disabled {
+             background-color: rgba(0,0,0,0.2);
+             opacity: 0.4;
+        }
+        
+        .action-card .bi {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Color coding for actions */
+        .action-card.info .bi { color: var(--color-info); }
+        .action-card.info:hover:not(:disabled) { border-color: var(--color-info); box-shadow: 0 4px 12px rgba(var(--color-info-rgb), 0.1); }
+        
+        .action-card.warning .bi { color: var(--color-warning); }
+        .action-card.warning:hover:not(:disabled) { border-color: var(--color-warning); box-shadow: 0 4px 12px rgba(var(--color-warning-rgb), 0.1); }
+
+        .action-card.danger .bi { color: var(--color-danger); }
+        .action-card.danger:hover:not(:disabled) { border-color: var(--color-danger); box-shadow: 0 4px 12px rgba(var(--color-danger-rgb), 0.1); }
+
+        /* NEW COLORS for Capture and Message */
+        .action-card.primary .bi { color: var(--color-primary); }
+        .action-card.primary:hover:not(:disabled) { border-color: var(--color-primary); box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.1); }
+
+        .action-card.success .bi { color: var(--color-success); }
+        .action-card.success:hover:not(:disabled) { border-color: var(--color-success); }
+
+        /* Mobile responsive */
+        @media (max-width: 1023px) {
+            .security-content-wrapper {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow: visible;
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .device-list-panel {
+                height: 400px; /* Fixed height for list on mobile */
+            }
+            .action-grid {
+                grid-template-columns: 1fr; /* Stack actions on mobile */
+            }
+            .main-content {
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-bg-primary dark:bg-dark-bg-primary font-sans text-text-primary dark:text-dark-text-primary overflow-hidden">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary-600 text-white">Skip to main content</a>
+
+    <!-- Full Page Preloader -->
+    <div id="app-preloader" class="bg-bg-card dark:bg-dark-bg-primary">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <!-- Confirmation Modal (Generic) -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modalClose" aria-label="Close modal" class="absolute top-4 right-4 text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            <h3 id="modalTitle" class="text-xl font-heading font-bold mb-2 text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
+            <p id="modalMessage" class="text-text-secondary dark:text-dark-text-secondary mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modalCancel" class="btn btn-secondary">Cancel</button>
+                <button id="modalConfirm" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Input Modal (Specific) -->
+    <div id="messageModal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="msgModalClose" aria-label="Close modal" class="absolute top-4 right-4 text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            <h3 class="text-xl font-heading font-bold mb-2 text-text-primary dark:text-dark-text-primary">Send Message</h3>
+            <p class="text-text-secondary dark:text-dark-text-secondary text-sm mb-4">This message will popup on the selected device(s).</p>
+            
+            <div class="mb-4">
+                <label for="messageInput" class="block text-sm font-medium mb-1 text-text-primary dark:text-dark-text-primary">Message Content</label>
+                <textarea id="messageInput" rows="4" class="w-full p-3 rounded-lg border border-border-color dark:border-dark-border-color bg-bg-primary dark:bg-dark-bg-primary text-text-primary dark:text-dark-text-primary focus:ring-2 focus:ring-primary-600 focus:outline-none transition-shadow" placeholder="Enter your message here... (e.g., Return this device immediately)"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button id="msgModalCancel" class="btn bg-slate-200 dark:bg-slate-600 text-text-primary dark:text-dark-text-primary hover:bg-slate-300 dark:hover:bg-slate-500">Cancel</button>
+                <button id="msgModalSend" class="btn bg-primary-600 text-white hover:bg-primary-700 flex items-center gap-2">
+                    <i class="bi bi-send-fill"></i> Send Now
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="app-container flex flex-grow-1 overflow-hidden">
+        <!-- ======================================================================
+             SIDEBAR
+             ====================================================================== -->
+        <aside id="sidebar" class="sidebar flex -translate-x-full lg:translate-x-0">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
+                <!-- INTEGRATION FIX: Root-relative path -->
+                <!-- LOGO CHANGE: Replaced <i> tag with <img> to use image_1f5f8d.png for branding -->
+                <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
+                    <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
+                </a>
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
+                <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
+                    <i class="bi bi-chevron-bar-left"></i>
+                </button>
+            </div>
+
+            <!-- Sidebar Navigation -->
+            <nav class="sidebar-nav">
+                <ul class="flex flex-col gap-1">
+                    <!-- INTEGRATION FIX: All paths are now root-relative -->
+                    <li>
+                        <a href="/dashboard" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-phone nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-phone -->
+                            <span class="nav-link-text">My Devices</span>
+                            <!-- UI/UX FIX: Added device count badge -->
+                            <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/map-view" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-map nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Full Map</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-geo-alt-fill -->
+                            <span class="nav-link-text">Geofencing</span>
+                        </a>
+                    </li>
+                    <li>
+                        <!-- This is the active page -->
+                        <a href="/security-actions" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary-600 dark:text-primary-400 bg-primary-light dark:bg-dark-bg-card font-medium no-underline">
+                            <i class="bi bi-shield-lock nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Security</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/location-history" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-clock-history nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">History</span>
+                        </a>
+                    </li>
+                     <li>
+                        <a href="/backup" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-database-down nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Backup & Restore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/settings" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-gear nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/support" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-question-circle nav-link-icon text-lg w-8"></i>
+                            <span class="nav-link-text">Support</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer px-6 py-4 flex-shrink-0">
+                <div class="user-profile flex items-center gap-3 mb-4">
+                    <img src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-10 h-10 rounded-full flex-shrink-0">
+                    <div class="user-info overflow-hidden">
+                        <div class="user-name-display font-semibold text-text-primary dark:text-dark-text-primary truncate">Loading...</div>
+                        <div id="userEmail" class="user-role text-sm text-text-secondary dark:text-dark-text-secondary truncate">...</div>
+                    </div>
+                </div>
+                <!-- ACCESSIBILITY FIX: Added aria-label for mini sidebar -->
+                <button id="logoutButton" aria-label="Logout" class="logout-button w-full flex items-center gap-3 py-3 px-4 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all">
+                    <i class="bi bi-box-arrow-right nav-link-icon text-lg w-8"></i>
+                    <span class="logout-text font-medium">Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ======================================================================
+             MAIN CONTENT
+             ====================================================================== -->
+        <div class="main-content" id="main-content-area">
+            <!-- Header -->
+            <header class="header flex items-center justify-between px-6">
+                <!-- Mobile Menu Toggle -->
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
+                <button id="mobileMenuToggle" aria-label="Open navigation menu" class="lg:hidden text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <!-- Header Title -->
+                <h1 class="hidden md:block text-2xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Security Actions</h1>
+                
+                <!-- Header Actions (Search, Notifications, User) -->
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="relative hidden sm:block">
+                        <label for="headerSearchInput" class="sr-only">Search</label>
+                        <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary dark:text-dark-text-secondary"></i>
+                        <input type="text" id="headerSearchInput" class="bg-bg-primary dark:bg-dark-bg-primary border border-border-color dark:border-dark-border-color rounded-full py-2 pl-10 pr-4 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 dark:focus:ring-primary-400" placeholder="Search...">
+                    </div>
+                    
+                    <button id="themeToggle" aria-label="Toggle theme" class="text-xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+                        <!-- Icon state is synced by app-shell.js -->
+                        <i class="bi bi-moon-fill"></i>
+                    </button>
+
+                    <!-- INTEGRATION FIX: Root-relative path -->
+                    <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+                        <i class="bi bi-bell"></i>
+                        <!-- FIX: Corrected bg-danger-500 to bg-danger -->
+                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                    </a>
+                    
+                    <div class="relative">
+                        <!-- ACCESSIBILITY FIX: Added aria-label -->
+                        <button id="userMenuToggle" aria-label="Open user menu" class="block w-10 h-10 rounded-full hover:ring-2 hover:ring-primary-600 dark:hover:ring-primary-400 transition-all">
+                            <img src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-full h-full rounded-full cursor-pointer">
+                        </button>
+                        <!-- User Dropdown -->
+                        <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
+                            <!-- INTEGRATION FIX: Root-relative paths -->
+                            <a href="/profile" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
+                            <a href="/settings" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Settings</a>
+                            <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-100 dark:hover:bg-red-900/30">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="security-content-wrapper flex-grow" id="main-content">
+                
+                <!-- Device Selection Panel -->
+                <div class="device-list-panel">
+                    <div class="panel-header">
+                        <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Select Devices</h2>
+                        <div class="flex items-center">
+                            <label for="select-all" class="text-sm font-medium text-text-secondary dark:text-dark-text-secondary mr-2">Select All</label>
+                            <input type="checkbox" id="select-all" class="h-5 w-5 text-primary-600 rounded border-gray-300 dark:border-gray-600 focus:ring-primary-600 dark:bg-dark-bg-card dark:focus:ring-primary-600 dark:focus:ring-offset-dark-bg-card">
+                        </div>
+                    </div>
+
+                    <div class="device-list-body relative">
+                        <!-- Empty State -->
+                        <div id="device-list-empty" class="hidden p-6 text-center text-text-secondary dark:text-dark-text-secondary absolute inset-0 flex flex-col items-center justify-center z-10">
+                            <i class="bi bi-box text-5xl mb-3"></i>
+                            <p class="font-medium">No Devices Found</p>
+                            <!-- INTEGRATION FIX: Root-relative path -->
+                            <p class="text-sm">Please <a href="/add-device" class="text-primary-600 font-medium">add a device</a> to see it here.</p>
+                        </div>
+
+                        <!-- Device List Items (Generated by JS) -->
+                        <div id="device-list"></div>
+                    </div>
+                </div>
+                
+                <!-- Action Panel -->
+                <div class="actions-panel">
+                    <div class="panel-header">
+                        <h2 class="text-xl font-heading font-semibold text-text-primary dark:text-dark-text-primary">Choose Action</h2>
+                        <span id="selected-count" class="text-sm font-medium text-text-secondary dark:text-dark-text-secondary">0 devices selected</span>
+                    </div>
+
+                    <div class="action-grid" id="security-buttons-container">
+                        <!-- Buttons injected by security-actions-logic.js based on SECURITY_BUTTONS config -->
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- UI/UX FIX: Photo Viewer Modal -->
+    <div id="viewPhotoModal" class="modal-overlay">
+        <div class="modal-content max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Finder Photo</h3>
+                <button id="viewPhotoClose" class="text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            </div>
+            
+            <div id="photoContent" class="text-center relative group">
+                <button id="prevPhotoBtn" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full z-10 transition-opacity disabled:opacity-0 disabled:pointer-events-none">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button id="nextPhotoBtn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full z-10 transition-opacity disabled:opacity-0 disabled:pointer-events-none">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+
+                <img id="finderPhotoImg" src="" alt="Finder photo" class="rounded-lg w-full h-64 object-cover shadow-md mb-3 hidden bg-gray-100 dark:bg-gray-800">
+                
+                <div id="photoPlaceholder" class="py-8 text-text-secondary dark:text-dark-text-secondary">
+                    <i class="bi bi-image text-4xl mb-2 block"></i>
+                    No photos captured yet.
+                </div>
+
+                <div class="mt-3 flex justify-between items-end">
+                    <div class="text-left">
+                        <p id="photoTimestamp" class="text-sm font-medium text-text-primary dark:text-dark-text-primary"></p>
+                    </div>
+                    <span id="photoIndexIndicator" class="text-xs text-text-secondary font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"></span>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="viewPhotoDone" class="btn bg-primary-600 text-white hover:bg-primary-700">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI/UX FIX: Message Viewer Modal -->
+    <div id="viewMessageModal" class="modal-overlay">
+        <div class="modal-content max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Finder Messages</h3>
+                <button id="viewMsgClose" class="text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            </div>
+            
+            <div class="relative">
+                 <button id="prevMsgBtn" class="absolute -left-4 top-1/2 -translate-y-1/2 bg-gray-200 dark:bg-gray-700 p-2 rounded-full z-10 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button id="nextMsgBtn" class="absolute -right-4 top-1/2 -translate-y-1/2 bg-gray-200 dark:bg-gray-700 p-2 rounded-full z-10 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+
+                <div class="bg-primary-50 dark:bg-slate-700/50 p-6 rounded-lg border border-primary-100 dark:border-slate-600 min-h-[140px] flex flex-col justify-center items-center text-center">
+                    <i class="bi bi-quote text-3xl text-primary-300 dark:text-slate-500 block mb-2"></i>
+                    <p id="finderMessageText" class="text-lg font-medium text-text-primary dark:text-dark-text-primary italic">
+                        </p>
+                    <div id="msgPlaceholder" class="hidden text-text-secondary">No messages yet.</div>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex justify-between items-center">
+                <p id="msgTimestamp" class="text-sm font-medium text-text-primary dark:text-dark-text-primary"></p>
+                <span id="msgIndexIndicator" class="text-xs text-text-secondary font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"></span>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="viewMsgDone" class="btn bg-primary-600 text-white hover:bg-primary-700">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+      ======================================================================
+      JAVASCRIPT
+      ====================================================================== 
+    -->
+    
+    <!-- 
+      CORE APP SCRIPT 
+      INTEGRATION FIX: All paths are now root-relative.
+    -->
+    <script src="/app/js/app-shell.js" type="module"></script>
+    
+    <!-- 
+      PAGE-SPECIFIC SCRIPT
+      INTEGRATION FIX: All paths are now root-relative.
+    -->
+    <script src="/app/js/security-actions-logic.js" type="module"></script>
+
+</body>
+</html>

@@ -40,7 +40,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
     <!-- INTEGRATION FIX: Favicon path is now root-relative. -->
-    <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+    <link rel="icon" type="image/png" href="/assets/transp-BqaJdLDg.png">
     
     <style>
         /* ==========================================================================
@@ -721,6 +721,11 @@
             }
         }
     </script>
+  <script type="module" crossorigin src="/assets/dashboard-BH1xp0Mi.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-YP0FEG5d.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-utils-DEXrBstL.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-shell-CtSII-jN.js">
+  <link rel="modulepreload" crossorigin href="/assets/map-tiles-D1fw3GxV.js">
 </head>
 <body class="bg-bg-primary font-sans text-text-primary dark:bg-dark-bg-primary dark:text-dark-text-primary">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary text-white">Skip to main content</a>
@@ -784,7 +789,7 @@
                 <!-- INTEGRATION FIX: Root-relative path -->
                 <!-- LOGO CHANGE: Replaced <i> tag with <img> to use image_2c91b8.png for branding -->
                 <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary no-underline overflow-hidden whitespace-nowrap">
-                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
+                    <img src="/assets/transp-BqaJdLDg.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                     <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
                 </a>
                 <!-- ACCESSIBILITY FIX: Added aria-label -->
@@ -947,7 +952,7 @@
                 <!-- Stat Card: Warning (Low Battery) -->
                 <div id="stat-card-warning" class="stat-card dashboard-card">
                     <div class="stat-icon"><i class="bi bi-battery-half"></i></div>
-                    <div class="stat-label">Low Battery (< 20%)</div>
+                    <div class="stat-label">Low Battery (&lt; 20%)</div>
                     <div id="warningDevices" class="stat-value">0</div>
                 </div>
 
@@ -1120,18 +1125,15 @@
       INTEGRATION FIX: All paths are now root-relative.
     -->
 
-    <!-- app-shell.js: Handles global logic -->
-    <script type="module" src="/app/js/app-shell.js"></script>
+    <!-- app-shell.js: Handles global logic -->
     
     <!-- 
       BUG FIX: Added `type="module"`
       This file uses 'export', so it must be loaded as a module.
       This fixes the 'Unexpected token export' error.
-    -->
-    <script type="module" src="/public/js/map-tiles.js"></script>
+    -->
     
-    <!-- dashboard-logic.js: Handles logic *only* for this page. -->
-    <script type="module" src="/app/js/dashboard-logic.js"></script>
+    <!-- dashboard-logic.js: Handles logic *only* for this page. -->
     
 </body>
 </html>
