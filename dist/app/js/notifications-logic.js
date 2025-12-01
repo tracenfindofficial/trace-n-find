@@ -19,7 +19,7 @@ import {
 } from '/app/js/app-shell.js';
 
 // --- Global State ---
-let allNotifications = [];
+let allNotifications = []; // Stores RAW list (including duplicates)
 let notificationListener = null; // Unsubscribe function
 
 // --- DOM Elements ---
@@ -79,20 +79,64 @@ function listenForNotifications(userId) {
     const notificationsRef = collection(fbDB, 'user_data', userId, 'notifications');
     
     // Query: Order by 'timestamp' descending (newest first)
-    // Note: Ensure your security actions write 'timestamp' (serverTimestamp()), not 'time'.
     const q = query(notificationsRef, orderBy('timestamp', 'desc'));
 
     notificationListener = onSnapshot(q, (snapshot) => {
+        // Store ALL data (even duplicates) so we can manage them locally
         allNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
         renderNotificationList();
         updateBadgeCount();
     }, (error) => {
         console.error("Error listening for notifications:", error);
-        // Only show error if list is present
         if (elements.notificationList) {
             elements.notificationList.innerHTML = `<div class="p-4 text-center text-danger">Error loading notifications.</div>`;
         }
     });
+}
+
+// --- Logic for Deduplication ---
+
+/**
+ * Filters the raw list to show only unique notifications.
+ * It groups items that have the same type, title, message, and are close in time.
+ * This fixes the issue of multiple tabs creating multiple entries.
+ */
+function getUniqueNotifications(notifications) {
+    const unique = [];
+    const seenSignatures = new Map(); // key: "type|title|msg", value: timestamp
+
+    notifications.forEach(notification => {
+        const timeMs = getTimestampMs(notification);
+        // Signature defines "sameness"
+        const signature = `${notification.type}|${notification.title}|${notification.message}`;
+        
+        if (seenSignatures.has(signature)) {
+            const lastTime = seenSignatures.get(signature);
+            const timeDiff = Math.abs(timeMs - lastTime);
+            
+            // If the same message appears within 10 seconds, treat it as a duplicate
+            if (timeDiff < 10000) { 
+                return; // Skip this one (it's a duplicate)
+            }
+        }
+
+        // It's unique (or significantly later), so keep it
+        seenSignatures.set(signature, timeMs);
+        unique.push(notification);
+    });
+
+    return unique;
+}
+
+function getTimestampMs(notification) {
+    if (notification.timestamp && typeof notification.timestamp.toMillis === 'function') {
+        return notification.timestamp.toMillis();
+    } else if (notification.time) {
+        const d = new Date(notification.time);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+    return 0;
 }
 
 // --- UI Rendering ---
@@ -100,11 +144,14 @@ function listenForNotifications(userId) {
 function renderNotificationList() {
     if (!elements.notificationList) return;
     
+    // Filter duplicates before rendering
+    const uniqueNotifications = getUniqueNotifications(allNotifications);
+    
     // Clear the current list content
     elements.notificationList.innerHTML = '';
     
     // If no notifications, re-append the empty state element and show it
-    if (!allNotifications || allNotifications.length === 0) {
+    if (!uniqueNotifications || uniqueNotifications.length === 0) {
         if (elements.notificationListEmpty) {
             elements.notificationList.appendChild(elements.notificationListEmpty);
             elements.notificationListEmpty.style.display = 'block';
@@ -118,7 +165,7 @@ function renderNotificationList() {
         elements.notificationListEmpty.style.display = 'none';
     }
     
-    allNotifications.forEach((notification, index) => {
+    uniqueNotifications.forEach((notification, index) => {
         const item = document.createElement('div');
         const isUnread = notification.read === false;
         
@@ -129,7 +176,7 @@ function renderNotificationList() {
         const icon = getNotificationIcon(notification.type);
         const color = getNotificationColor(notification.type);
         
-        // Robust timestamp handling: Check 'timestamp' first, fallback to 'time'
+        // Robust timestamp handling
         let timeVal = notification.timestamp || notification.time;
         let timeAgo = 'Just now';
         
@@ -167,7 +214,10 @@ function renderNotificationList() {
 function updateBadgeCount() {
     if (!elements.notificationBadge) return;
 
-    const unreadCount = allNotifications.filter(n => n.read === false).length;
+    // Only count unread items that are VISIBLE (unique)
+    // This ensures the badge matches the visual list, not the database count
+    const uniqueList = getUniqueNotifications(allNotifications);
+    const unreadCount = uniqueList.filter(n => n.read === false).length;
     
     if (unreadCount > 0) {
         elements.notificationBadge.textContent = unreadCount;
@@ -179,7 +229,7 @@ function updateBadgeCount() {
     }
 }
 
-// --- Helper Functions ---
+// --- Helper Functions (Icons & Colors) ---
 
 function getNotificationIcon(type) {
     switch (type) {
@@ -189,16 +239,11 @@ function getNotificationIcon(type) {
         case 'low-battery': return 'bi-battery-half';
         case 'lost-mode': return 'bi-exclamation-diamond-fill';
         case 'success': return 'bi-check-circle-fill';
-        
-        // --- NEW ICONS ---
-        case 'sim-alert': return 'bi-sd-card-fill'; // Using SD Card/SIM style icon
+        case 'sim-alert': return 'bi-sd-card-fill';
         case 'tracking-start': return 'bi-play-circle-fill';
         case 'tracking-stop': return 'bi-stop-circle-fill';
-        
-        // --- FINDER MESSAGES/PHOTOS ---
         case 'message-received': return 'bi-chat-left-text-fill';
         case 'photo-received': return 'bi-camera-fill';
-
         default: return 'bi-bell-fill';
     }
 }
@@ -207,26 +252,20 @@ function getNotificationColor(type) {
     switch (type) {
         case 'security':
         case 'lost-mode':
-        case 'sim-alert': // High alert
+        case 'sim-alert': 
             return 'var(--color-danger)';
-        
         case 'tracking-stop':
-            return 'var(--color-warning)'; // Warning for stopping
-        
+        case 'low-battery':
+            return 'var(--color-warning)';
         case 'geofence-enter':
         case 'geofence-exit':
         case 'info':
             return 'var(--color-info)';
-        
-        case 'low-battery':
-            return 'var(--color-warning)';
-        
         case 'success':
-        case 'tracking-start': // Success for starting
-        case 'message-received': // Using Primary/Success for positive received actions
+        case 'tracking-start': 
+        case 'message-received': 
         case 'photo-received':
             return 'var(--color-success)';
-        
         default:
             return 'var(--color-primary)';
     }
@@ -235,10 +274,35 @@ function getNotificationColor(type) {
 // --- Actions ---
 
 async function markOneAsRead(notificationId, userId) {
+    // 1. Find the specific notification clicked
+    const target = allNotifications.find(n => n.id === notificationId);
+    if (!target) return;
+
+    // 2. SMART MARKING: Find this notification AND all its duplicates (from other tabs)
+    // This prevents "Whac-A-Mole" where you mark one read and a hidden duplicate pops up.
+    const targetTime = getTimestampMs(target);
+    const siblingsToMark = allNotifications.filter(n => {
+        if (n.read) return false; // Already read
+        
+        // Check matching content
+        const sameContent = (n.title === target.title && n.message === target.message && n.type === target.type);
+        
+        // Check matching time (10s window to catch all concurrent writes)
+        const nTime = getTimestampMs(n);
+        const closeTime = Math.abs(nTime - targetTime) < 10000;
+
+        return sameContent && closeTime;
+    });
+
+    const batch = writeBatch(fbDB);
+    siblingsToMark.forEach(n => {
+        const docRef = doc(fbDB, 'user_data', userId, 'notifications', n.id);
+        batch.update(docRef, { read: true });
+    });
+
     try {
-        const docRef = doc(fbDB, 'user_data', userId, 'notifications', notificationId);
-        await updateDoc(docRef, { read: true });
-        // UI updates automatically via onSnapshot listener
+        await batch.commit();
+        // No toast needed for simple read action usually
     } catch (error) {
         console.error("Error marking read:", error);
         showToast('Error', 'Could not update status.', 'error');
@@ -252,9 +316,11 @@ async function markAllAsRead(userId) {
         return;
     }
 
-    // Firestore batches allow up to 500 operations
     const batch = writeBatch(fbDB);
-    unread.forEach(n => {
+    // Limit batch size to 500 (Firestore limit)
+    const toUpdate = unread.slice(0, 500); 
+    
+    toUpdate.forEach(n => {
         const docRef = doc(fbDB, 'user_data', userId, 'notifications', n.id);
         batch.update(docRef, { read: true });
     });
@@ -280,7 +346,10 @@ function clearAllNotifications(userId) {
         'danger',
         async () => {
             const batch = writeBatch(fbDB);
-            allNotifications.forEach(n => {
+            // Delete everything in the raw list (including duplicates)
+            const toDelete = allNotifications.slice(0, 500);
+            
+            toDelete.forEach(n => {
                 const docRef = doc(fbDB, 'user_data', userId, 'notifications', n.id);
                 batch.delete(docRef);
             });
