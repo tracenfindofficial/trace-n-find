@@ -187,34 +187,29 @@ function initMap() {
     });
 }
 
+// In dist/app/js/location-history-logic.js
+
 async function loadHistoryData(userId) {
     const deviceId = elements.deviceFilter.value;
     const dateString = elements.dateFilter.value; 
 
     if (!deviceId || !dateString) return;
 
-    // Update Header Title
+    // --- 1. Update Header UI ---
     if (elements.historyTitleHeader) {
-        const today = new Date();
-        const localToday = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
-            .toISOString()
-            .split('T')[0];
-
-        if (dateString === localToday) {
-            elements.historyTitleHeader.textContent = "History for Today";
-        } else {
-            const dateObj = new Date(dateString);
-            const readableDate = dateObj.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric',
-                timeZone: 'UTC' 
-            });
-            elements.historyTitleHeader.textContent = `History of ${readableDate}`;
-        }
+        const dateObj = new Date(dateString);
+        // Use UTC to prevent date shifting
+        const readableDate = dateObj.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            timeZone: 'UTC' 
+        });
+        elements.historyTitleHeader.textContent = `History of ${readableDate}`;
     }
 
     try {
+        // --- 2. Fetch Data ---
         const docRef = doc(fbDB, 'user_data', userId, 'devices', deviceId, 'location_history', dateString);
         const docSnap = await getDoc(docRef);
 
@@ -228,10 +223,19 @@ async function loadHistoryData(userId) {
         }
 
         const data = docSnap.data();
-        const historyPoints = data.route || data.points || data.locations || data.history || [];
+        let historyPoints = data.route || [];
 
-        console.log(`Found ${historyPoints.length} history points.`);
+        // --- 3. THE CRITICAL FIX: SORT BY TIME ---
+        // We must ensure points are ordered chronologically before drawing lines.
+        historyPoints.sort((a, b) => {
+            const timeA = parseDateHelper(a)?.getTime() || 0;
+            const timeB = parseDateHelper(b)?.getTime() || 0;
+            return timeA - timeB;
+        });
+
+        console.log(`Found ${historyPoints.length} sorted history points.`);
         
+        // --- 4. Update UI ---
         const distance = calculateTotalDistance(historyPoints);
         const duration = calculateDuration(historyPoints);
         

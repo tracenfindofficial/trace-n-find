@@ -1,8 +1,6 @@
 // --- Trace'N Find Backup & Restore Logic ---
 // This file handles all logic *specific* to backup.html.
-// It assumes `app-shell.js` has already been loaded and has authenticated the user.
 
-// SCALABILITY/INTEGRATION FIX: All imports now come from the central app-shell.js
 import { 
     fbDB,
     collection, 
@@ -10,23 +8,22 @@ import {
     query,
     doc,
     getDocs,
-    getDoc, // Added getDoc for profile fetch
+    getDoc, 
     addDoc,
     deleteDoc,
-    setDoc, // Added setDoc for restore profile
+    setDoc, 
     writeBatch,
     serverTimestamp,
     orderBy,
     showToast,
     showModal,
     setLoadingState,
-    // NEW: Imports for notification logic
     where
 } from '/app/js/app-shell.js';
 
 // --- Global State for this Page ---
 let allBackups = [];
-let backupListener = null; // Unsubscribe function for Firestore
+let backupListener = null;
 
 // --- DOM Elements ---
 const elements = {
@@ -35,7 +32,6 @@ const elements = {
     uploadBackupInput: document.getElementById('upload-backup-input'),
     backupList: document.getElementById('backup-list'),
     backupListEmpty: document.getElementById('backup-list-empty'),
-    // Notification Badge
     notificationBadge: document.getElementById('notificationBadge'),
 };
 
@@ -43,14 +39,11 @@ const elements = {
 function waitForAuth(callback) {
     const check = () => {
         if (window.currentUserId) {
-            console.log("Backup Logic: Auth is ready.");
             callback(window.currentUserId);
         } else {
-            console.log("Backup logic waiting for authentication...");
             requestAnimationFrame(check);
         }
     };
-    
     if (window.currentUserId) {
         callback(window.currentUserId);
     } else {
@@ -61,38 +54,39 @@ function waitForAuth(callback) {
 waitForAuth((userId) => {
     setupEventListeners(userId);
     listenForBackups(userId);
-    listenForUnreadNotifications(userId); // Start listening for notifications
+    listenForUnreadNotifications(userId);
 });
 
-/**
- * Attaches all event listeners for the page.
- */
 function setupEventListeners(userId) {
-    elements.createBackupBtn.addEventListener('click', () => createBackup(userId));
+    if (elements.createBackupBtn) {
+        elements.createBackupBtn.addEventListener('click', () => createBackup(userId));
+    }
     
-    elements.uploadBackupInput.addEventListener('change', (e) => handleRestoreUpload(e, userId));
+    if (elements.uploadBackupInput) {
+        elements.uploadBackupInput.addEventListener('change', (e) => handleRestoreUpload(e, userId));
+    }
 
     // Event delegation for list buttons
-    elements.backupList.addEventListener('click', (e) => {
-        const target = e.target.closest('button');
-        if (!target) return;
+    if (elements.backupList) {
+        elements.backupList.addEventListener('click', (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
 
-        const backupId = target.dataset.id;
-        if (target.matches('.btn-restore')) {
-            handleRestore(backupId, userId);
-        } else if (target.matches('.btn-download')) {
-            handleDownload(backupId);
-        } else if (target.matches('.btn-delete')) {
-            handleDelete(backupId, userId);
-        }
-    });
+            const backupId = target.dataset.id;
+            if (target.matches('.btn-restore')) {
+                handleRestore(backupId, userId);
+            } else if (target.matches('.btn-download')) {
+                handleDownload(backupId);
+            } else if (target.matches('.btn-delete')) {
+                handleDelete(backupId, userId);
+            }
+        });
+    }
 }
 
 // --- Notification Logic ---
 function listenForUnreadNotifications(userId) {
     const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
-    
-    // Query specifically for unread items to get an accurate count
     const q = query(notifsRef, where("read", "==", false));
 
     onSnapshot(q, (snapshot) => {
@@ -118,10 +112,6 @@ function updateBadgeCount(count) {
 
 // --- Firestore Data ---
 
-/**
- * Sets up a real-time listener for the user's backups.
- * @param {string} userId - The authenticated user's ID.
- */
 function listenForBackups(userId) {
     if (backupListener) backupListener();
     
@@ -134,17 +124,14 @@ function listenForBackups(userId) {
     }, (error) => {
         console.error("Error listening for backups:", error);
         showToast('Error', 'Could not load backup history.', 'error');
-        elements.backupListEmpty.style.display = 'block';
+        if(elements.backupListEmpty) elements.backupListEmpty.style.display = 'block';
     });
 }
 
 // --- UI Rendering ---
 
-/**
- * Renders the list of backups.
- */
 function renderBackupList() {
-    // Clear list but not the empty state
+    if (!elements.backupList) return;
     elements.backupList.innerHTML = '';
     
     if (!allBackups || allBackups.length === 0) {
@@ -161,24 +148,40 @@ function renderBackupList() {
         item.style.animationDelay = `${index * 30}ms`;
         
         const backupDate = backup.createdAt?.toDate() ? backup.createdAt.toDate().toLocaleString() : 'Just now';
-        const deviceCount = backup.deviceCount || 0;
-        const geofenceCount = backup.geofenceCount || 0;
-        const profileText = backup.hasProfile ? ", Contact Info" : "";
+        
+        // Data indicators
+        const hasProfile = backup.hasProfile;
+        const type = backup.type || 'full'; // 'contact_only' or 'full'
+        
+        let detailsText = "";
+        let iconClass = "bi-hdd-network"; // Default icon
+
+        if (type === 'contact_only' || (hasProfile && !backup.deviceCount)) {
+            // Contact Only Backup
+            detailsText = `<span class="text-success font-medium"><i class="bi bi-person-check-fill"></i> Contact Information Only</span>`;
+            iconClass = "bi-person-badge-fill";
+        } else {
+            // Legacy/Full Backup
+            const deviceCount = backup.deviceCount || 0;
+            const geofenceCount = backup.geofenceCount || 0;
+            detailsText = `<span class="text-text-secondary">${deviceCount} devices, ${geofenceCount} geofences</span>`;
+            if (hasProfile) detailsText += ` <span class="text-success text-xs mx-1">• Profile</span>`;
+        }
 
         item.innerHTML = `
             <div class="backup-icon-wrapper">
-                <i class="bi bi-file-zip-fill"></i>
+                <i class="bi ${iconClass}"></i>
             </div>
             <div class="flex-1">
-                <div class="font-semibold text-text-primary dark:text-dark-text-primary">Backup - ${backupDate}</div>
-                <div class="text-sm text-text-secondary dark:text-dark-text-secondary">${deviceCount} devices, ${geofenceCount} geofences${profileText}</div>
+                <div class="font-semibold text-text-primary dark:text-dark-text-primary">Snapshot - ${backupDate}</div>
+                <div class="text-sm text-text-secondary dark:text-dark-text-secondary mt-0.5">${detailsText}</div>
             </div>
             <div class="flex flex-col sm:flex-row gap-2">
                 <button class="btn btn-sm btn-secondary btn-restore" data-id="${backup.id}" title="Restore">
-                    <i class="bi bi-database-down mr-1"></i> Restore
+                    <i class="bi bi-arrow-counterclockwise mr-1"></i> Restore
                 </button>
                 <button class="btn btn-sm btn-secondary btn-download" data-id="${backup.id}" title="Download">
-                    <i class="bi bi-download mr-1"></i> Download
+                    <i class="bi bi-download mr-1"></i> JSON
                 </button>
                 <button class="btn btn-sm btn-secondary btn-delete" data-id="${backup.id}" title="Delete">
                     <i class="bi bi-trash-fill text-danger"></i>
@@ -192,41 +195,40 @@ function renderBackupList() {
 // --- Core Logic ---
 
 /**
- * Creates a new backup.
- * SCALABILITY NOTE: This runs on the client and fetches all data.
- * In a production app, this should be a Cloud Function for performance and scalability.
- * @param {string} userId - The authenticated user's ID.
+ * Creates a backup of CONTACT INFORMATION ONLY.
+ * Ignores devices and geofences arrays.
  */
 async function createBackup(userId) {
     setLoadingState(elements.createBackupBtn, true);
     
     try {
-        // 1. Fetch all data to back up
-        const devicesRef = collection(fbDB, 'user_data', userId, 'devices');
-        const geofencesRef = collection(fbDB, 'user_data', userId, 'geofences');
+        // 1. Fetch ONLY Profile/Contact Information
         const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
-        
-        const devicesSnapshot = await getDocs(devicesRef);
-        const geofencesSnapshot = await getDocs(geofencesRef);
         const profileSnapshot = await getDoc(profileRef);
 
         const backupData = {
-            devices: devicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-            geofences: geofencesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+            devices: [],   // Explicitly empty
+            geofences: [], // Explicitly empty
             profile: profileSnapshot.exists() ? profileSnapshot.data() : null
         };
 
-        // 2. Save backup metadata and data (as a string) to a new doc
+        if (!backupData.profile) {
+            showToast('Warning', 'No profile data found to backup.', 'warning');
+            return;
+        }
+
+        // 2. Save backup metadata and data
         const backupsRef = collection(fbDB, 'user_data', userId, 'backups');
         await addDoc(backupsRef, {
             createdAt: serverTimestamp(),
-            deviceCount: backupData.devices.length,
-            geofenceCount: backupData.geofences.length,
-            hasProfile: !!backupData.profile,
-            data: JSON.stringify(backupData), // Store the whole backup as a JSON string
+            deviceCount: 0, 
+            geofenceCount: 0,
+            hasProfile: true,
+            type: 'contact_only', // Tag specifically as contact only
+            data: JSON.stringify(backupData), 
         });
 
-        showToast('Success', 'Snapshot created successfully (devices, geofences & contact info).', 'success');
+        showToast('Success', 'Contact Information Snapshot created.', 'success');
     } catch (error) {
         console.error("Error creating backup:", error);
         showToast('Error', 'Could not create backup.', 'error');
@@ -235,11 +237,6 @@ async function createBackup(userId) {
     }
 }
 
-/**
- * Handles restoring data from an uploaded JSON file.
- * @param {Event} e - The file input change event.
- * @param {string} userId - The authenticated user's ID.
- */
 function handleRestoreUpload(e, userId) {
     const file = e.target.files[0];
     if (!file) return;
@@ -255,10 +252,10 @@ function handleRestoreUpload(e, userId) {
     reader.onload = (event) => {
         try {
             const backupData = JSON.parse(event.target.result);
-            if (!backupData.devices || !backupData.geofences) {
+            // Relaxed validation: Allow if at least profile exists
+            if (!backupData.devices && !backupData.profile) {
                 throw new Error("Invalid backup file format.");
             }
-            // Ask for confirmation before proceeding
             confirmRestore(backupData, userId, elements.uploadBackupLabel);
         } catch (error) {
             console.error("Error parsing backup file:", error);
@@ -267,16 +264,9 @@ function handleRestoreUpload(e, userId) {
         }
     };
     reader.readAsText(file);
-    
-    // Reset input to allow re-uploading the same file
     e.target.value = null;
 }
 
-/**
- * Handles restoring data from a backup history item.
- * @param {string} backupId - The ID of the backup doc.
- * @param {string} userId - The authenticated user's ID.
- */
 function handleRestore(backupId, userId) {
     const backup = allBackups.find(b => b.id === backupId);
     if (!backup) {
@@ -286,7 +276,6 @@ function handleRestore(backupId, userId) {
 
     try {
         const backupData = JSON.parse(backup.data);
-        // Ask for confirmation before proceeding
         confirmRestore(backupData, userId);
     } catch (error) {
         console.error("Error parsing backup data:", error);
@@ -295,63 +284,55 @@ function handleRestore(backupId, userId) {
 }
 
 /**
- * Shows a confirmation modal and executes the restore if confirmed.
- * @param {object} backupData - The parsed backup data object.
- * @param {string} userId - The authenticated user's ID.
- * @param {HTMLElement} [buttonToReset] - Optional button to reset loading state.
+ * Shows a confirmation modal and executes the restore.
+ * Fixed the signature of showModal to ensure callbacks work.
  */
 function confirmRestore(backupData, userId, buttonToReset = null) {
-    const deviceCount = backupData.devices.length;
-    const geofenceCount = backupData.geofences.length; // Corrected typo
     const hasProfile = !!backupData.profile;
+    const isContactOnly = (!backupData.devices || backupData.devices.length === 0);
     
-    const profileMsg = hasProfile ? ", plus your <strong>Contact Information</strong>" : "";
+    let title = "Restore Contact Info?";
+    let msg = "Are you sure you want to restore your <strong>Contact Information & Settings</strong>?";
+    
+    if (!isContactOnly) {
+        title = "Restore Full Backup?";
+        msg = `This will overwrite <strong>${backupData.devices.length} devices</strong> and settings. <br><span class="text-warning">Warning: Current data will be replaced.</span>`;
+    }
 
+    // CORRECTED SHOWMODAL SIGNATURE: (title, message, type, confirmCallback, cancelCallback)
     showModal(
-        true,
-        'Restore Backup?',
-        `This will overwrite all current data. Are you sure you want to restore <strong>${deviceCount} devices</strong> and <strong>${geofenceCount} geofences</strong>${profileMsg}? This action cannot be undone.`,
-        'Restore Data',
-        'btn-danger',
+        title,
+        msg,
+        'warning',
         async () => {
-            // This is the confirm callback
             if (buttonToReset) setLoadingState(buttonToReset, true, true);
-            showToast('Restoring...', 'Please wait, restoring your data.', 'info');
+            showToast('Restoring...', 'Applying data...', 'info');
             
             try {
                 const batch = writeBatch(fbDB);
                 
-                // 1. Restore devices
-                backupData.devices.forEach(device => {
-                    const docRef = doc(fbDB, 'user_data', userId, 'devices', device.id);
-                    batch.set(docRef, device);
-                });
-
-                // 2. Restore geofences
-                backupData.geofences.forEach(geofence => {
-                    const docRef = doc(fbDB, 'user_data', userId, 'geofences', geofence.id);
-                    batch.set(docRef, geofence);
-                });
-
-                // 3. Restore Profile (Contact Number) if available
-                // We perform this as a separate promise because setDoc returns a promise,
-                // but batch ops are synchronous until commit.
-                // However, `batch.set` works fine for this too, we just need to target the right path.
+                // 1. Restore Profile (Priority)
                 if (backupData.profile) {
                     const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
-                    // Use merge: true so we don't accidentally wipe out fields the backup might be missing
-                    // though usually a full restore implies replacing data.
-                    // Given the request "restore contact number", we prioritize that.
                     batch.set(profileRef, backupData.profile, { merge: true });
                 }
 
-                await batch.commit();
-                
-                let successMsg = 'Devices and Geofences restored.';
-                if (hasProfile) {
-                    successMsg = 'Devices, Geofences, and Contact Number restored successfully.';
+                // 2. Restore devices/geofences ONLY if they exist in backup
+                if (backupData.devices && backupData.devices.length > 0) {
+                    backupData.devices.forEach(device => {
+                        const docRef = doc(fbDB, 'user_data', userId, 'devices', device.id);
+                        batch.set(docRef, device);
+                    });
                 }
-                showToast('Success', successMsg, 'success');
+                if (backupData.geofences && backupData.geofences.length > 0) {
+                    backupData.geofences.forEach(geofence => {
+                        const docRef = doc(fbDB, 'user_data', userId, 'geofences', geofence.id);
+                        batch.set(docRef, geofence);
+                    });
+                }
+
+                await batch.commit();
+                showToast('Success', 'Data restored successfully.', 'success');
 
             } catch (error) {
                 console.error("Error restoring data:", error);
@@ -361,16 +342,11 @@ function confirmRestore(backupData, userId, buttonToReset = null) {
             }
         },
         () => {
-            // This is the cancel callback
             if (buttonToReset) setLoadingState(buttonToReset, false, true);
         }
     );
 }
 
-/**
- * Triggers a file download for a specific backup.
- * @param {string} backupId - The ID of the backup doc.
- */
 function handleDownload(backupId) {
     const backup = allBackups.find(b => b.id === backupId);
     if (!backup || !backup.data) {
@@ -380,7 +356,8 @@ function handleDownload(backupId) {
 
     try {
         const backupDate = backup.createdAt?.toDate() ? backup.createdAt.toDate().toISOString().split('T')[0] : 'backup';
-        const filename = `tracenfind_backup_${backupDate}.json`;
+        const typeStr = backup.type === 'contact_only' ? 'contact' : 'full';
+        const filename = `tracenfind_${typeStr}_backup_${backupDate}.json`;
         
         const blob = new Blob([backup.data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -393,7 +370,7 @@ function handleDownload(backupId) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        showToast('Downloading', 'Your backup file is downloading.', 'success');
+        showToast('Downloading', 'Backup file downloading.', 'success');
     } catch (error) {
         console.error("Error creating download:", error);
         showToast('Error', 'Could not prepare download.', 'error');
@@ -402,22 +379,19 @@ function handleDownload(backupId) {
 
 /**
  * Deletes a backup from the history.
- * @param {string} backupId - The ID of the backup doc.
- * @param {string} userId - The authenticated user's ID.
+ * FIXED: Corrected showModal signature so delete callback actually runs.
  */
 function handleDelete(backupId, userId) {
+    // CORRECTED SHOWMODAL SIGNATURE: (title, message, type, confirmCallback)
     showModal(
-        true,
-        'Delete Backup?',
+        'Delete Snapshot?',
         'Are you sure you want to delete this backup snapshot? This action cannot be undone.',
-        'Delete',
-        'btn-danger',
+        'danger',
         async () => {
-            // Confirm callback
             try {
                 const docRef = doc(fbDB, 'user_data', userId, 'backups', backupId);
                 await deleteDoc(docRef);
-                showToast('Success', 'Backup deleted.', 'success');
+                showToast('Success', 'Backup snapshot deleted.', 'success');
             } catch (error) {
                 console.error("Error deleting backup:", error);
                 showToast('Error', 'Could not delete backup.', 'error');
