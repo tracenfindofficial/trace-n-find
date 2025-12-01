@@ -1,3 +1,8 @@
+//### 2. Update `dist/app/js/geofencing-logic.js`
+//* **Notification Logic:** Added logic to count unread notifications and update the badge.
+//* **Device Marker:** Updated `renderDevicesOnMap` to use the animated SVG markers similar to the dashboard, improving visibility and aesthetic consistency.
+
+//```javascript:Branding & Markers Logic:dist/app/js/geofencing-logic.js
 // --- Trace'N Find Geofencing Logic ---
 // This file handles all logic *specific* to geofencing.html.
 // It assumes `app-shell.js` has already been loaded and has authenticated the user.
@@ -8,6 +13,7 @@ import {
     showModal,
     getDeviceIcon, 
     getDeviceColor,
+    getBatteryIcon, // Added for marker tooltips
     collection,
     doc,
     addDoc,
@@ -18,7 +24,9 @@ import {
     serverTimestamp,
     orderBy,
     sanitizeHTML,
-    formatTimeAgo
+    formatTimeAgo,
+    // NEW: Imports for notification logic
+    where
 } from '/app/js/app-shell.js';
 
 // Import Google Map Styles
@@ -48,6 +56,9 @@ const elements = {
     // Map
     mapContainer: document.getElementById('map'),
     mapClickPrompt: document.getElementById('map-click-prompt'),
+    
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
     
     // List
     geofenceList: document.getElementById('geofence-list'),
@@ -101,7 +112,36 @@ waitForAuth((userId) => {
     setupEventListeners(userId);
     listenForGeofences(userId);
     listenForDevices(userId); 
+    listenForUnreadNotifications(userId); // Start listening for notifications
 });
+
+// --- Notification Logic ---
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
+}
 
 /**
  * Initializes the Google Map.
@@ -430,22 +470,59 @@ function renderDevicesOnMap() {
 
         const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
         
-        // Create a simple marker for the device
+        // --- 1. DEFINE COLORS ---
+        const colorMap = {
+            online: "#10b981", // Green
+            found: "#10b981",
+            offline: "#ef4444", // Red
+            lost: "#ef4444",
+            warning: "#f59e0b" // Yellow
+        };
+        const pinColor = colorMap[device.status] || "#64748b";
+
+        // --- 2. CREATE ANIMATED SVG ICON (Same as Dashboard) ---
+        const svgIcon = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 80 80">
+                ${ (device.status !== 'offline') ? `
+                <circle cx="40" cy="40" r="18" fill="#4361ee" stroke="#4361ee" stroke-width="2" opacity="0.6">
+                    <animate attributeName="r" from="18" to="40" dur="1.5s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" repeatCount="indefinite" />
+                </circle>
+                ` : '' }
+                <circle cx="40" cy="40" r="18" fill="${pinColor}" stroke="white" stroke-width="3" />
+                <g transform="translate(28, 28)">
+                    <path fill="white" d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                </g>
+            </svg>`;
+
+        const iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon);
+
+        // --- 3. CREATE MARKER ---
         const marker = new google.maps.Marker({
             position: position,
             map: map,
             title: `Device: ${device.name}`,
-            // Optimization: Standard red pin makes it easy to see devices vs blue geofences
+            icon: {
+                url: iconUrl,
+                scaledSize: new google.maps.Size(48, 48), 
+                anchor: new google.maps.Point(24, 24) 
+            },
+            optimized: false 
         });
 
         // InfoWindow
         const lastSeen = device.lastSeen ? formatTimeAgo(device.lastSeen) : 'Unknown';
+        const battery = device.battery || 0;
+        
         const infoWindow = new google.maps.InfoWindow({
             content: `
-                <div style="color:black">
-                    <b>${sanitizeHTML(device.name)}</b><br>
-                    <span style="color:${getDeviceColor(device.status)}">${device.status}</span><br>
-                    Last Seen: ${lastSeen}
+                <div style="color: black; padding: 5px;">
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px;">${sanitizeHTML(device.name)}</h3>
+                    <p style="margin: 0;">Status: <strong style="color:${getDeviceColor(device.status)}">${device.status}</strong></p>
+                    <p style="margin: 0;">Battery: ${battery}%</p>
+                    <p style="margin: 0; font-size: 12px; color: #666;">
+                        Seen: ${lastSeen}
+                    </p>
                 </div>
             `
         });

@@ -10,14 +10,18 @@ import {
     query,
     doc,
     getDocs,
+    getDoc, // Added getDoc for profile fetch
     addDoc,
     deleteDoc,
+    setDoc, // Added setDoc for restore profile
     writeBatch,
     serverTimestamp,
     orderBy,
     showToast,
     showModal,
-    setLoadingState
+    setLoadingState,
+    // NEW: Imports for notification logic
+    where
 } from '/app/js/app-shell.js';
 
 // --- Global State for this Page ---
@@ -31,6 +35,8 @@ const elements = {
     uploadBackupInput: document.getElementById('upload-backup-input'),
     backupList: document.getElementById('backup-list'),
     backupListEmpty: document.getElementById('backup-list-empty'),
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
 };
 
 // --- Initialization ---
@@ -55,6 +61,7 @@ function waitForAuth(callback) {
 waitForAuth((userId) => {
     setupEventListeners(userId);
     listenForBackups(userId);
+    listenForUnreadNotifications(userId); // Start listening for notifications
 });
 
 /**
@@ -79,6 +86,34 @@ function setupEventListeners(userId) {
             handleDelete(backupId, userId);
         }
     });
+}
+
+// --- Notification Logic ---
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
 }
 
 // --- Firestore Data ---
@@ -128,6 +163,7 @@ function renderBackupList() {
         const backupDate = backup.createdAt?.toDate() ? backup.createdAt.toDate().toLocaleString() : 'Just now';
         const deviceCount = backup.deviceCount || 0;
         const geofenceCount = backup.geofenceCount || 0;
+        const profileText = backup.hasProfile ? ", Contact Info" : "";
 
         item.innerHTML = `
             <div class="backup-icon-wrapper">
@@ -135,7 +171,7 @@ function renderBackupList() {
             </div>
             <div class="flex-1">
                 <div class="font-semibold text-text-primary dark:text-dark-text-primary">Backup - ${backupDate}</div>
-                <div class="text-sm text-text-secondary dark:text-dark-text-secondary">${deviceCount} devices, ${geofenceCount} geofences</div>
+                <div class="text-sm text-text-secondary dark:text-dark-text-secondary">${deviceCount} devices, ${geofenceCount} geofences${profileText}</div>
             </div>
             <div class="flex flex-col sm:flex-row gap-2">
                 <button class="btn btn-sm btn-secondary btn-restore" data-id="${backup.id}" title="Restore">
@@ -168,13 +204,16 @@ async function createBackup(userId) {
         // 1. Fetch all data to back up
         const devicesRef = collection(fbDB, 'user_data', userId, 'devices');
         const geofencesRef = collection(fbDB, 'user_data', userId, 'geofences');
+        const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
         
         const devicesSnapshot = await getDocs(devicesRef);
         const geofencesSnapshot = await getDocs(geofencesRef);
+        const profileSnapshot = await getDoc(profileRef);
 
         const backupData = {
             devices: devicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
             geofences: geofencesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+            profile: profileSnapshot.exists() ? profileSnapshot.data() : null
         };
 
         // 2. Save backup metadata and data (as a string) to a new doc
@@ -183,10 +222,11 @@ async function createBackup(userId) {
             createdAt: serverTimestamp(),
             deviceCount: backupData.devices.length,
             geofenceCount: backupData.geofences.length,
+            hasProfile: !!backupData.profile,
             data: JSON.stringify(backupData), // Store the whole backup as a JSON string
         });
 
-        showToast('Success', 'Snapshot created successfully.', 'success');
+        showToast('Success', 'Snapshot created successfully (devices, geofences & contact info).', 'success');
     } catch (error) {
         console.error("Error creating backup:", error);
         showToast('Error', 'Could not create backup.', 'error');
@@ -262,12 +302,15 @@ function handleRestore(backupId, userId) {
  */
 function confirmRestore(backupData, userId, buttonToReset = null) {
     const deviceCount = backupData.devices.length;
-    const geofenceCount = backupData.geofenceCount.length;
+    const geofenceCount = backupData.geofences.length; // Corrected typo
+    const hasProfile = !!backupData.profile;
+    
+    const profileMsg = hasProfile ? ", plus your <strong>Contact Information</strong>" : "";
 
     showModal(
         true,
         'Restore Backup?',
-        `This will overwrite all current data. Are you sure you want to restore <strong>${deviceCount} devices</strong> and <strong>${geofenceCount} geofences</strong>? This action cannot be undone.`,
+        `This will overwrite all current data. Are you sure you want to restore <strong>${deviceCount} devices</strong> and <strong>${geofenceCount} geofences</strong>${profileMsg}? This action cannot be undone.`,
         'Restore Data',
         'btn-danger',
         async () => {
@@ -278,20 +321,37 @@ function confirmRestore(backupData, userId, buttonToReset = null) {
             try {
                 const batch = writeBatch(fbDB);
                 
-                // Restore devices
+                // 1. Restore devices
                 backupData.devices.forEach(device => {
                     const docRef = doc(fbDB, 'user_data', userId, 'devices', device.id);
                     batch.set(docRef, device);
                 });
 
-                // Restore geofences
+                // 2. Restore geofences
                 backupData.geofences.forEach(geofence => {
                     const docRef = doc(fbDB, 'user_data', userId, 'geofences', geofence.id);
                     batch.set(docRef, geofence);
                 });
 
+                // 3. Restore Profile (Contact Number) if available
+                // We perform this as a separate promise because setDoc returns a promise,
+                // but batch ops are synchronous until commit.
+                // However, `batch.set` works fine for this too, we just need to target the right path.
+                if (backupData.profile) {
+                    const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
+                    // Use merge: true so we don't accidentally wipe out fields the backup might be missing
+                    // though usually a full restore implies replacing data.
+                    // Given the request "restore contact number", we prioritize that.
+                    batch.set(profileRef, backupData.profile, { merge: true });
+                }
+
                 await batch.commit();
-                showToast('Success', 'Data restored successfully.', 'success');
+                
+                let successMsg = 'Devices and Geofences restored.';
+                if (hasProfile) {
+                    successMsg = 'Devices, Geofences, and Contact Number restored successfully.';
+                }
+                showToast('Success', successMsg, 'success');
 
             } catch (error) {
                 console.error("Error restoring data:", error);
@@ -365,10 +425,3 @@ function handleDelete(backupId, userId) {
         }
     );
 }
-
-/**
- * Toggles the loading state of a button.
- * @param {HTMLElement} btn - The button element.
- * @param {boolean} isLoading - Whether to show the loading state.
- * @param {boolean} isSecondary - Optional: True if it's a secondary button.
- */

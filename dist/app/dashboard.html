@@ -8,8 +8,8 @@
     <title>Dashboard - Trace'N Find</title>
     
     <!-- 
-     PERFORMANCE FIX: 
-     Render-blocking script to prevent Flash of Unstyled Content (FOUC).
+      PERFORMANCE FIX: 
+      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
     -->
     <script>
       (function() {
@@ -31,13 +31,6 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- 
-      PERFORMANCE FIX:
-      Leaflet, MarkerCluster, and Chart.js <script> and <link> tags
-      are REMOVED from here. They are now loaded once by app-shell.js
-      to speed up page navigation.
-    -->
-
     <!-- Bootstrap Icons (for icons) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -48,11 +41,6 @@
 
     <!-- INTEGRATION FIX: Favicon path is now root-relative. -->
     <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
-    <!-- 
-      BUG FIX:
-      Add the missing libraries. These were removed by mistake.
-      dashboard-logic.js needs these to run.
-    -->
     
     <style>
         /* ==========================================================================
@@ -266,25 +254,39 @@
         }
         
         /* --- Main Dashboard Grid --- */
+        /* UPDATED: 5 Column Grid for separated stats */
         .dashboard-grid {
             display: grid;
             gap: 1.5rem;
             padding: 1.5rem;
             /* Responsive grid setup */
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             grid-template-areas:
-                "stat1 stat2 stat3 stat4"
-                "map map actions actions"
-                "devices devices devices notifications"
-                "security security security notifications";
+                "stat1 stat2 stat3 stat4 stat5"
+                "map map map actions actions"
+                "devices devices devices notifications notifications"
+                "security security security notifications notifications";
         }
         
+        @media (max-width: 1536px) { /* 2xl */
+            .dashboard-grid {
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-areas:
+                    "stat1 stat2 stat3 stat4"
+                    "stat5 stat5 . ." 
+                    "map map actions actions"
+                    "devices devices devices notifications"
+                    "security security security notifications";
+            }
+        }
+
         @media (max-width: 1279px) { /* xl */
             .dashboard-grid {
                 grid-template-columns: 1fr 1fr;
                 grid-template-areas:
                     "stat1 stat2"
                     "stat3 stat4"
+                    "stat5 stat5"
                     "map map"
                     "actions actions"
                     "devices devices"
@@ -297,15 +299,8 @@
             .dashboard-grid {
                 grid-template-columns: 1fr;
                 grid-template-areas:
-                    "stat1"
-                    "stat2"
-                    "stat3"
-                    "stat4"
-                    "map"
-                    "actions"
-                    "devices"
-                    "security"
-                    "notifications";
+                    "stat1" "stat2" "stat3" "stat4" "stat5"
+                    "map" "actions" "devices" "security" "notifications";
             }
             .header {
                 padding: 0 1rem;
@@ -317,6 +312,8 @@
         #stat-card-online { grid-area: stat2; }
         #stat-card-warning { grid-area: stat3; }
         #stat-card-offline { grid-area: stat4; }
+        #stat-card-lost { grid-area: stat5; }
+
         #map-card { grid-area: map; }
         #actions-card { grid-area: actions; }
         #devices-card { grid-area: devices; }
@@ -366,16 +363,13 @@
             font-family: var(--font-family-heading);
             line-height: 1;
         }
-        /* * FIX: Removed the old .stat-card-chart CSS
-         * This is no longer used. We use a single donut chart in the security card.
-        */
         
         /* Specific Card Colors */
         #stat-card-total { background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); }
         #stat-card-online { background: linear-gradient(135deg, var(--color-success) 0%, #0077b6 100%); }
         #stat-card-warning { background: linear-gradient(135deg, var(--color-warning) 0%, #fb5607 100%); }
-        #stat-card-offline { background: linear-gradient(135deg, var(--color-danger) 0%, #8338ec 100%); }
-
+        #stat-card-offline { background: linear-gradient(135deg, #64748b 0%, #334155 100%); } /* Grey/Slate for Offline */
+        #stat-card-lost { background: linear-gradient(135deg, var(--color-danger) 0%, #8338ec 100%); } /* Red/Purple for Lost */
 
         /* --- Map Card --- */
         #map {
@@ -384,11 +378,6 @@
             border-radius: 0.5rem;
             z-index: 10;
         }
-        
-        /*
-         * AESTHETICS FIX: Removed the dark mode filter.
-         * We are now loading real dark mode tiles via map-tiles.js.
-        */
         
         /* Custom Popup */
         .leaflet-popup-content-wrapper {
@@ -793,8 +782,9 @@
             <!-- Sidebar Header -->
             <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6">
                 <!-- INTEGRATION FIX: Root-relative path -->
+                <!-- LOGO CHANGE: Replaced <i> tag with <img> to use image_2c91b8.png for branding -->
                 <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary no-underline overflow-hidden whitespace-nowrap">
-                    <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary p-2 rounded-lg"></i>
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                     <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
                 </a>
                 <!-- ACCESSIBILITY FIX: Added aria-label -->
@@ -815,7 +805,7 @@
                     </li>
                     <li>
                         <a href="/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-phone nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-phone -->
                             <span class="nav-link-text">My Devices</span>
                             <!-- UI/UX FIX: Added device count badge -->
                             <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
@@ -829,7 +819,7 @@
                     </li>
                     <li>
                         <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-geo-alt-fill -->
                             <span class="nav-link-text">Geofencing</span>
                         </a>
                     </li>
@@ -945,7 +935,6 @@
                     <div class="stat-icon"><i class="bi bi-phone"></i></div>
                     <div class="stat-label">Total Devices</div>
                     <div id="totalDevices" class="stat-value">0</div>
-                    <!-- FIX: Removed old canvas -->
                 </div>
 
                 <!-- Stat Card: Online -->
@@ -953,23 +942,27 @@
                     <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
                     <div class="stat-label">Online</div>
                     <div id="onlineDevices" class="stat-value">0</div>
-                    <!-- FIX: Removed old canvas -->
                 </div>
 
                 <!-- Stat Card: Warning (Low Battery) -->
                 <div id="stat-card-warning" class="stat-card dashboard-card">
-                    <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
-                    <div class="stat-label">Low Battery</div>
+                    <div class="stat-icon"><i class="bi bi-battery-half"></i></div>
+                    <div class="stat-label">Low Battery (< 20%)</div>
                     <div id="warningDevices" class="stat-value">0</div>
-                    <!-- FIX: Removed old canvas -->
                 </div>
 
                 <!-- Stat Card: Offline -->
                 <div id="stat-card-offline" class="stat-card dashboard-card">
-                    <div class="stat-icon"><i class="bi bi-x-circle"></i></div>
-                    <div class="stat-label">Offline / Lost</div>
+                    <div class="stat-icon"><i class="bi bi-wifi-off"></i></div>
+                    <div class="stat-label">Offline</div>
                     <div id="offlineDevices" class="stat-value">0</div>
-                    <!-- FIX: Removed old canvas -->
+                </div>
+                
+                <!-- Stat Card: Lost -->
+                <div id="stat-card-lost" class="stat-card dashboard-card">
+                    <div class="stat-icon"><i class="bi bi-exclamation-diamond-fill"></i></div>
+                    <div class="stat-label">Marked Lost</div>
+                    <div id="lostDevices" class="stat-value">0</div>
                 </div>
 
                 <!-- Map Card -->
@@ -1036,26 +1029,10 @@
                     </div>
                 </div>
                 
-                <!-- 
-                  DESIGN/AESTHETICS FIX:
-                  Replaced the "Security Overview" card's content with the donut chart.
-                  This provides a much more data-rich dashboard.
-                -->
                 <div id="security-card" class="dashboard-card p-4">
                     <h2 class="text-xl font-heading font-semibold mb-4 text-text-primary dark:text-dark-text-primary">Device Status</h2>
                     <div class="relative w-full h-64">
                          <canvas id="deviceStatusChart"></canvas>
-                    </div>
-                    <div class="mt-4 space-y-2">
-                        <!-- INTEGRATION FIX: Root-relative paths -->
-                        <a href="/profile" class="flex justify-between items-center p-3 rounded-lg hover:bg-bg-primary dark:hover:bg-slate-700/50 transition-colors no-underline">
-                            <span class="font-medium text-text-primary dark:text-dark-text-primary"><i class="bi bi-person-check-fill mr-2 text-primary"></i>Two-Factor Auth</span>
-                            <span class="font-medium text-green-600">Enabled</span>
-                        </a>
-                        <a href="/security-actions" class="flex justify-between items-center p-3 rounded-lg hover:bg-bg-primary dark:hover:bg-slate-700/50 transition-colors no-underline">
-                            <span class="font-medium text-text-primary dark:text-dark-text-primary"><i class="bi bi-clock-history mr-2 text-primary"></i>Login History</span>
-                            <i class="bi bi-chevron-right text-text-secondary dark:text-dark-text-secondary"></i>
-                        </a>
                     </div>
                 </div>
 

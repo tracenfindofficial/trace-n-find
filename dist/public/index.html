@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Trace'N Find",
+        "alternateName": ["TraceNFind", "Trace-N-Find"],
+        "url": "https://trace-n-find.com/"
+    }
+    </script>
+    
+    <meta name="google-site-verification" content="rO9RvZ8jZp0w0IVF-tGCKUkNOyo6dJla0A7PtTyu6cA" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -8,7 +20,7 @@
     <meta name="keywords" content="device tracking, find my phone, lost device, stolen device, GPS tracking, device security">
     <meta name="author" content="Trace'N Find Team">
     <title>Trace'N Find - Never Lose Your Devices Again</title>
-    
+
     <script>
       (function() {
         try {
@@ -38,139 +50,88 @@
 
     <script>
         // Custom Tailwind Configuration
-        tailwind.config = {
-            darkMode: ['selector', '[data-theme="dark"]'], // Match new theme script
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        heading: ['Poppins', 'sans-serif'],
-                    },
-                    colors: {
-                        // Brand color palette
-                        primary: {
-                            '50': '#f0f2fe',
-                            '100': '#e0e6fd',
-                            '200': '#c8d2fb',
-                            '300': '#a7b7f9',
-                            '400': '#8596f6',
-                            '500': '#6772f4',
-                            '600': '#4361ee', // Base color
-                            '700': '#3a50d0',
-                            '800': '#3042a9',
-                            '900': '#2a3a85',
-                            '950': '#1a2353',
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: ['selector', '[data-theme="dark"]'],
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                            heading: ['Poppins', 'sans-serif'],
                         },
-                        // Semantic colors for features
-                        success: {
-                            '100': '#d1fae5', // light
-                            '500': '#10b981', // dark
-                            '900': '#064e3b', // dark bg
+                        colors: {
+                            primary: {
+                                '50': '#f0f2fe', '100': '#e0e6fd', '200': '#c8d2fb', '300': '#a7b7f9',
+                                '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
+                                '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
+                            },
+                            success: { '100': '#d1fae5', '500': '#10b981', '900': '#064e3b' },
+                            warning: { '100': '#fef3c7', '500': '#f59e0b', '900': '#78350f' },
+                            danger: { '100': '#fee2e2', '500': '#ef4444', '900': '#7f1d1d' },
+                            info: { '100': '#cffafe', '500': '#06b6d4', '900': '#164e63' },
+                            indigo: { '100': '#e0e7ff', '500': '#6366f1', '900': '#312e81' },
+                            purple: { '600': '#9333ea' },
+                            slate: { '700': '#334155', '800': '#1e293b', '900': '#0f172a' }
                         },
-                        warning: {
-                            '100': '#fef3c7', // light
-                            '500': '#f59e0b', // dark
-                            '900': '#78350f', // dark bg
+                        animation: {
+                            'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                            'hero-gradient': 'heroGradient 15s ease infinite',
+                            'hero-float': 'heroFloat 6s ease-in-out infinite',
+                            'map-pulse': 'mapPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                            'cta-glow': 'ctaPulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         },
-                        danger: {
-                            '100': '#fee2e2', // light
-                            '500': '#ef4444', // dark
-                            '900': '#7f1d1d', // dark bg
-                        },
-                        info: {
-                            '100': '#cffafe', // light
-                            '500': '#06b6d4', // dark
-                            '900': '#164e63', // dark bg
-                        },
-                        indigo: {
-                            '100': '#e0e7ff',
-                            '500': '#6366f1',
-                            '900': '#312e81',
-                        },
-                        purple: {
-                            '600': '#9333ea',
-                        },
-                        // Dark mode colors
-                        slate: {
-                            '700': '#334155',
-                            '800': '#1e293b',
-                            '900': '#0f172a'
-                        }
-                    },
-                    animation: {
-                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
-                        'count-up': 'countUp 1.5s ease-out forwards',
-                        'hero-gradient': 'heroGradient 15s ease infinite',
-                        'hero-float': 'heroFloat 6s ease-in-out infinite',
-                        'map-pulse': 'mapPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite',
-                        'cta-glow': 'ctaPulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            'from': { opacity: '0', transform: 'translateY(20px)' },
-                            'to': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        heroGradient: {
-                            '0%, 100%': { 'background-position': '0% 50%' },
-                            '50%': { 'background-position': '100% 50%' },
-                        },
-                        heroFloat: {
-                            '0%, 100%': { transform: 'translateY(0) rotate(-3deg)' },
-                            '50%': { transform: 'translateY(-20px) rotate(-3deg)' },
-                        },
-                        mapPulse: {
-                            '0%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.4)' },
-                            '70%': { boxShadow: '0 0 0 20px rgba(255, 255, 255, 0)' },
-                            '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' },
-                        },
-                        ctaPulse: {
-                            '0%, 100%': { boxShadow: '0 0 20px -5px rgba(255, 255, 255, 0)' },
-                            '50%': { boxShadow: '0 0 35px 5px rgba(255, 255, 255, 0.3)' },
+                        keyframes: {
+                            fadeInUp: {
+                                'from': { opacity: '0', transform: 'translateY(20px)' },
+                                'to': { opacity: '1', transform: 'translateY(0)' },
+                            },
+                            heroGradient: {
+                                '0%, 100%': { 'background-position': '0% 50%' },
+                                '50%': { 'background-position': '100% 50%' },
+                            },
+                            heroFloat: {
+                                '0%, 100%': { transform: 'translateY(0) rotate(-3deg)' },
+                                '50%': { transform: 'translateY(-20px) rotate(-3deg)' },
+                            },
+                            mapPulse: {
+                                '0%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.4)' },
+                                '70%': { boxShadow: '0 0 0 20px rgba(255, 255, 255, 0)' },
+                                '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' },
+                            },
+                            ctaPulse: {
+                                '0%, 100%': { boxShadow: '0 0 20px -5px rgba(255, 255, 255, 0)' },
+                                '50%': { boxShadow: '0 0 35px 5px rgba(255, 255, 255, 0.3)' },
+                            }
                         }
                     }
                 }
-            }
+            };
         }
     </script>
     
     <style>
-        /* Smooth scrolling */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Glassmorphism Navbar Style */
+        html { scroll-behavior: smooth; }
+        
         .glass-nav {
             background: rgba(255, 255, 255, 0.7);
-            /* CSS FIX: Swapped order for linter */
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.7); /* slate-200/70 */
+            border-bottom: 1px solid rgba(226, 232, 240, 0.7);
         }
-        
         .dark .glass-nav {
-            background: rgba(15, 23, 42, 0.7); /* dark:bg-slate-900/70 */
-            /* CSS FIX: Swapped order for linter */
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(51, 65, 85, 0.7); /* dark:border-slate-700/70 */
+            background: rgba(15, 23, 42, 0.7);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.7);
         }
-        
-        /* Navbar shadow on scroll */
         .scrolled {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
 
-        /* ✅ FIX: Animated gradient for Hero & CTA 
-           Now applies to BOTH Light and Dark mode to ensure white text is always visible 
-        */
         .hero-gradient {
             background: linear-gradient(-45deg, #4361ee, #8596f6, #6366f1, #9333ea);
             background-size: 400% 400%;
             animation: heroGradient 15s ease infinite;
         }
         
-        /* Scroll-triggered fade-in animation */
         .fade-in-section {
             opacity: 0;
             transform: translateY(20px);
@@ -181,121 +142,30 @@
             transform: translateY(0);
         }
 
-        /* "How It Works" Timeline */
-        .timeline-center-line {
-            position: absolute;
-            left: 50%;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background-color: theme('colors.slate.200');
-            transform: translateX(-50%);
-            border-radius: 2px;
-            display: none; /* Hidden by default, shown on md */
-        }
-        .dark .timeline-center-line {
-            background-color: theme('colors.slate.700');
-        }
-        
-        .timeline-item-container {
-            position: relative;
-        }
-
-        .timeline-dot {
-            position: absolute;
-            left: 50%;
-            top: 0.5rem; /* Align with text */
-            width: 1.5rem;
-            height: 1.5rem;
-            transform: translateX(-50%);
-            background-color: white;
-            border: 4px solid theme('colors.primary.600');
-            border-radius: 50%;
-            z-index: 10;
-            display: none; /* Hidden by default, shown on md */
-        }
-        .dark .timeline-dot {
-            background-color: theme('colors.slate.800');
-        }
-        
-        /* Show timeline elements on medium screens and up */
-        @media (min-width: 768px) {
-            .timeline-center-line, .timeline-dot {
-                display: block;
-            }
-            .timeline-item {
-                width: 50%;
-                margin-bottom: 3rem;
-            }
-            .timeline-item:nth-child(odd) {
-                align-self: flex-start;
-                padding-right: 3rem;
-                text-align: right;
-            }
-            .timeline-item:nth-child(even) {
-                align-self: flex-end;
-                padding-left: 3rem;
-                text-align: left;
-            }
-            .timeline-item:nth-child(odd) .timeline-dot {
-                right: -0.75rem; /* ( (3rem padding - 1.5rem dot) / 2 ) */
-                left: auto;
-                transform: translateX(50%);
-            }
-            .timeline-item:nth-child(even) .timeline-dot {
-                left: -0.75rem;
-                transform: translateX(-50%);
-            }
-        }
-
-
-        /* FAQ Accordion */
-        .faq-item summary {
-            list-style: none; /* Remove default marker */
-            cursor: pointer;
-        }
-        .faq-item summary::-webkit-details-marker {
-            display: none; /* Chrome */
-        }
-        .faq-item .icon {
-            transition: transform 0.3s ease;
-        }
-        .faq-item[open] .icon {
-            transform: rotate(180deg);
-        }
-        
         /* Preloader */
         .preloader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; display: flex; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.5s ease;
         }
-        .dark .preloader {
-            background: #0f172a; /* dark:bg-slate-900 */
-        }
+        .dark .preloader { background: #0f172a; }
         .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid #e0e6fd; /* primary-100 */
-            border-top-color: #4361ee; /* primary-600 */
-            border-radius: 50%;
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 4px solid #e0e6fd; border-top-color: #4361ee;
             animation: spin 1s linear infinite;
         }
-        .dark .spinner {
-            border-color: #1a2353; /* primary-950 */
-            border-top-color: #6772f4; /* primary-500 */
+        .dark .spinner { border-color: #1a2353; border-top-color: #6772f4; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Back to Top */
+        #backToTop {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; width: 3rem; height: 3rem;
+            border-radius: 9999px; background-color: #4361ee; color: white;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease; z-index: 40; transform: translateY(100px); opacity: 0;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        #backToTop.is-visible { transform: translateY(0); opacity: 1; }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white antialiased">
@@ -304,36 +174,39 @@
         <div class="spinner"></div>
     </div>
 
+    <!-- Header -->
     <header id="header" class="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300">
         <nav class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
                 <a href="#home" class="flex items-center gap-2 no-underline">
                     <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
                     <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
                 </a>
                 
+                <!-- Desktop Nav -->
                 <div class="hidden lg:flex items-center gap-2">
-                    <a href="#home" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Home</a>
-                    <a href="#features" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Features</a>
-                    <a href="#how-it-works" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">How It Works</a>
-                    <a href="#team" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Team</a>
-                    <a href="#testimonials" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Testimonials</a>
-                    <a href="#faq" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">FAQ</a>
+                    <!-- Active State -->
+                    <a href="/index" class="px-3 py-2 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-800 transition-colors">Home</a>
+                    <a href="/features" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Features</a>
+                    <a href="/how-it-works" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">How It Works</a>
+                    <a href="/about" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">About Us</a>
+                    <a href="/faq" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">FAQ</a>
+                    <a href="/blog" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Blog</a>
+                    <a href="/contact" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Contact</a>
                 </div>
                 
+                <!-- Auth Buttons -->
                 <div class="hidden lg:flex items-center gap-3">
-                    <a href="/login" class="px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">
-                        Login
-                    </a>
-                    <a href="/register" class="px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5 shadow-md hover:shadow-lg">
-                        Sign Up
-                    </a>
+                    <a href="/login" class="px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-colors">Login</a>
+                    <a href="/register" class="px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5 shadow-md hover:shadow-lg">Sign Up</a>
                     <button id="themeToggle" aria-label="Toggle theme" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
                         <i class="bi bi-moon-fill block dark:hidden"></i>
                         <i class="bi bi-sun-fill hidden dark:block"></i>
                     </button>
                 </div>
                 
+                <!-- Mobile Menu Button -->
                 <div class="lg:hidden flex items-center">
                     <button id="themeToggleMobile" aria-label="Toggle theme" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-slate-800">
                         <i class="bi bi-moon-fill block dark:hidden"></i>
@@ -345,23 +218,21 @@
                 </div>
             </div>
             
+            <!-- Mobile Menu -->
             <div id="mobileMenu" class="hidden lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
                 <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                    <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Home</a>
-                    <a href="#features" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Features</a>
-                    <a href="#how-it-works" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">How It Works</a>
-                    <a href="#team" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Team</a>
-                    <a href="#testimonials" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Testimonials</a>
-                    <a href="#faq" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">FAQ</a>
+                    <a href="/index" class="block px-3 py-2 rounded-md text-base font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-700">Home</a>
+                    <a href="/features" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Features</a>
+                    <a href="/how-it-works" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">How It Works</a>
+                    <a href="/about" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">About Us</a>
+                    <a href="/faq" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">FAQ</a>
+                    <a href="/blog" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Blog</a>
+                    <a href="/contact" class="block px-3 py-2 rounded-md text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-700">Contact</a>
                 </div>
                 <div class="pt-4 pb-3 border-t border-slate-200 dark:border-slate-700 px-2">
                     <div class="flex flex-col gap-2">
-                        <a href="/login" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-700">
-                            Login
-                        </a>
-                        <a href="/register" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                            Sign Up
-                        </a>
+                        <a href="/login" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-slate-700">Login</a>
+                        <a href="/register" class="block w-full text-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">Sign Up</a>
                     </div>
                 </div>
             </div>
@@ -369,64 +240,100 @@
     </header>
 
     <main>
+        <!-- Hero Section -->
         <section id="home" class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden hero-gradient">
-            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+             <div id="particle-container" class="absolute inset-0 z-0">
+                <!-- Particles will be injected here by app.js -->
+            </div>
+            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                    <div class="text-center lg:text-left">
-                        <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
+                    <div class="text-center lg:text-left animate-fade-in-up">
+                        <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white mb-6 backdrop-blur-sm border border-white/10">
                             <i class="bi bi-award-fill mr-2"></i> GMI Final Year Project 2025
                         </span>
-                        <h1 class="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white mt-6">
-                            Never Lose Your Devices Again
+                        <h1 class="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white leading-tight">
+                            Never Lose Your <br> Devices Again
                         </h1>
                         <p class="mt-6 text-lg lg:text-xl text-primary-100 max-w-lg mx-auto lg:mx-0">
                             Trace'N Find offers real-time device tracking with advanced security features. Locate, secure, and manage your devices from anywhere in the world.
                         </p>
                         
-                        <!-- HERO BUTTONS with APK Download -->
+                        <!-- HERO BUTTONS -->
                         <div class="mt-10 flex flex-col sm:flex-row flex-wrap gap-4 justify-center lg:justify-start">
-                            <!-- Web Register Button -->
                             <a href="/register" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-primary-700 bg-white hover:bg-slate-100 transition-all transform hover:-translate-y-1 shadow-lg">
                                 Get Started for Free
                             </a>
                             
-                            <!-- APK Download Button -->
-                            <a href="/public/downloads/TraceNFind.apk" download="TraceNFind.apk" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-white border-2 border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:border-white transition-all transform hover:-translate-y-1 shadow-lg group">
+                            <!-- FIXED DOWNLOAD LINK -->
+                            <a href="/public/assets/downloads/Trace-N-Find.apk" download="Trace-N-Find.apk" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-white border-2 border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:border-white transition-all transform hover:-translate-y-1 shadow-lg group">
                                 <i class="bi bi-android2 mr-2 text-xl group-hover:scale-110 transition-transform"></i>
                                 Download App
                             </a>
-
-                            <!-- How It Works Button -->
-                            <a href="#how-it-works" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-white bg-white/20 hover:bg-white/30 transition-all transform hover:-translate-y-1">
-                                How It Works <i class="bi bi-arrow-right-short ml-1"></i>
-                            </a>
                         </div>
                         
-                        <div class="mt-10 flex flex-wrap gap-8 justify-center lg:justify-start">
+                        <!-- STATS -->
+                        <div class="mt-12 flex flex-wrap gap-8 justify-center lg:justify-start">
                             <div class="text-center">
-                                <div id="stat-users" class="font-heading font-bold text-4xl text-white">69</div>
-                                <div class="text-sm text-primary-100 uppercase tracking-wider">Active Users</div>
+                                <div id="stat-users" class="font-heading font-bold text-4xl text-white">0</div>
+                                <div class="text-sm text-primary-100 uppercase tracking-wider mt-1">Active Users</div>
                             </div>
                             <div class="text-center">
-                                <div id="stat-recovery" class="font-heading font-bold text-4xl text-white">67%</div>
-                                <div class="text-sm text-primary-100 uppercase tracking-wider">Recovery Rate</div>
+                                <div id="stat-recovery" class="font-heading font-bold text-4xl text-white">0%</div>
+                                <div class="text-sm text-primary-100 uppercase tracking-wider mt-1">Recovery Rate</div>
                             </div>
                             <div class="text-center">
                                 <div id="stat-support" class="font-heading font-bold text-4xl text-white">24/7</div>
-                                <div class="text-sm text-primary-100 uppercase tracking-wider">Support</div>
+                                <div class="text-sm text-primary-100 uppercase tracking-wider mt-1">Support</div>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- HERO IMAGE -->
                     <div class="relative hidden lg:block animate-hero-float">
-                        <div class="w-72 h-[36rem] bg-slate-800 rounded-[40px] border-[10px] border-slate-900 shadow-xl mx-auto relative z-10 transition-all duration-500 hover:rotate-0 hover:scale-105">
-                            <div class="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-900 rounded-b-lg"></div>
+                        <div class="w-72 h-[36rem] bg-slate-800 rounded-[40px] border-[10px] border-slate-900 shadow-2xl mx-auto relative z-10 transition-all duration-500 hover:rotate-0 hover:scale-105 transform rotate-3">
+                            <!-- Dynamic Notch/Island with Camera -->
+                            <div class="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-900 rounded-full flex items-center justify-center gap-3 z-20 shadow-inner">
+                                <!-- Speaker Grill -->
+                                <div class="w-10 h-1 bg-slate-800 rounded-full opacity-50"></div>
+                                <!-- Camera Lens -->
+                                <div class="w-3 h-3 bg-blue-900/30 rounded-full border border-slate-800 relative flex items-center justify-center overflow-hidden">
+                                     <div class="w-1.5 h-1.5 bg-blue-800/60 rounded-full"></div>
+                                     <div class="absolute top-0.5 right-0.5 w-0.5 h-0.5 bg-white/40 rounded-full"></div>
+                                </div>
+                            </div>
+
                             <div class="h-full w-full bg-slate-700 rounded-[30px] overflow-hidden relative">
-                                <img src="/public/assets/images/GMi map location.png" alt="Map Preview" loading="lazy" class="absolute inset-0 w-full h-full object-cover">
-                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center z-20">
-                                    <i class="bi bi-geo-alt-fill text-white"></i>
+                                <!-- Map Image Placeholder -->
+                                <img src="/public/assets/images/GMi map location.png" alt="Map Preview" class="absolute inset-0 w-full h-full object-cover">
+                                
+                                <!-- Pulse Effect Pin -->
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center z-20 shadow-lg ring-4 ring-white/30">
+                                    <i class="bi bi-geo-alt-fill text-white text-sm"></i>
                                 </div>
                                 <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary-500 animate-map-pulse z-10"></div>
+                            </div>
+                        </div>
+                        <!-- Floating Elements -->
+                        <div class="absolute top-20 -right-10 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-20 animate-bounce" style="animation-duration: 3s;">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                    <i class="bi bi-shield-check-fill text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-900 dark:text-white">Device Secured</p>
+                                    <p class="text-xs text-slate-500">Just now</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-20 -left-10 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-20 animate-bounce" style="animation-duration: 4s;">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                    <i class="bi bi-geo-fill text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-900 dark:text-white">Location Updated</p>
+                                    <p class="text-xs text-slate-500">2 mins ago</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -434,6 +341,7 @@
             </div>
         </section>
 
+        <!-- Features Grid -->
         <section id="features" class="py-20 lg:py-32 bg-white dark:bg-slate-800/50">
             <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="text-center max-w-3xl mx-auto fade-in-section">
@@ -441,291 +349,55 @@
                     <h2 class="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white mt-3">
                         Everything You Need to Stay Secure
                     </h2>
-                    <p class="mt-4 text-lg text-slate-900 dark:text-white">
+                    <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">
                         From real-time tracking to remote data wipe, we provide a complete security suite for all your devices.
                     </p>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/50">
-                            <i class="bi bi-geo-alt-fill text-3xl text-primary-600 dark:text-primary-400"></i>
+                    <!-- Feature 1 -->
+                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group">
+                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 group-hover:bg-primary-600 group-hover:text-white transition-colors text-primary-600 dark:text-primary-400">
+                            <i class="bi bi-geo-alt-fill text-2xl"></i>
                         </div>
-                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-5">Real-Time Tracking</h3>
-                        <p class="mt-2 text-slate-900 dark:text-white">
+                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-6">Real-Time Tracking</h3>
+                        <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">
                             Track your devices in real-time using GPS, Wi-Fi, and cellular networks with pinpoint accuracy.
                         </p>
                     </div>
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-danger-100 dark:bg-danger-900/50">
-                            <i class="bi bi-shield-lock-fill text-3xl text-danger-500"></i>
+                    
+                    <!-- Feature 2 -->
+                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group">
+                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-danger-100 dark:bg-danger-900/50 group-hover:bg-danger-500 group-hover:text-white transition-colors text-danger-500">
+                            <i class="bi bi-shield-lock-fill text-2xl"></i>
                         </div>
-                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-5">Remote Security</h3>
-                        <p class="mt-2 text-slate-900 dark:text-white">
-                            <!-- CHANGED -->
-                            Mark your device as lost and trigger a loud alarm.
+                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-6">Remote Security</h3>
+                        <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">
+                            Instantly lock your device, play a loud alarm, or wipe sensitive data if it's lost for good.
                         </p>
                     </div>
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-warning-100 dark:bg-warning-900/50">
-                            <i class="bi bi-bell-fill text-3xl text-warning-500"></i>
+                    
+                    <!-- Feature 3 -->
+                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group">
+                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-warning-100 dark:bg-warning-900/50 group-hover:bg-warning-500 group-hover:text-white transition-colors text-warning-500">
+                            <i class="bi bi-bell-fill text-2xl"></i>
                         </div>
-                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-5">Smart Alerts</h3>
-                        <p class="mt-2 text-slate-900 dark:text-white">
+                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-6">Smart Alerts</h3>
+                        <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">
                             Receive instant notifications when your device moves or leaves a designated safe zone (Geofencing).
                         </p>
                     </div>
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-success-100 dark:bg-success-900/50">
-                            <!-- CHANGED ICON -->
-                            <i class="bi bi-megaphone-fill text-3xl text-success-500"></i>
-                        </div>
-                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-5">Remote Alarms</h3>
-                        <p class="mt-2 text-slate-900 dark:text-white">
-                            Trigger a loud, piercing alarm on your device from anywhere. Helps you locate a misplaced device or deter a potential thief.
-                        </p>
-                    </div>
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/50">
-                            <i class="bi bi-person-check-fill text-3xl text-indigo-500"></i>
-                        </div>
-                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-5">Multi-Factor Auth</h3>
-                        <p class="mt-2 text-slate-900 dark:text-white">
-                            Secure your account with multi-factor authentication to prevent unauthorized access.
-                        </p>
-                    </div>
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <div class="w-14 h-14 rounded-full flex items-center justify-center bg-info-100 dark:bg-info-900/50">
-                             <!-- CHANGED ICON -->
-                            <i class="bi bi-file-earmark-image-fill text-3xl text-info-500"></i>
-                        </div>
-                        <!-- CHANGED TITLE AND DESCRIPTION -->
-                        <h3 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-5">Evidence Logs</h3>
-                        <p class="mt-2 text-slate-900 dark:text-white">
-                            View evidence logs which can show pictures taken by the device and messages sent by the finder.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <section id="how-it-works" class="py-20 lg:py-32 bg-slate-50 dark:bg-slate-900/50 overflow-hidden">
-            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="text-center max-w-3xl mx-auto fade-in-section">
-                    <span class="font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider">Simple Setup</span>
-                    <h2 class="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white mt-3">
-                        Protected in 4 Easy Steps
-                    </h2>
-                    <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">
-                        Getting started with Trace'N Find is simple. Follow these easy steps to secure your devices.
-                    </p>
                 </div>
                 
-                <div class="relative flex flex-col items-center max-w-3xl mx-auto mt-20">
-                    <div class="timeline-center-line"></div>
-                    
-                    <div class="timeline-item-container w-full md:w-auto flex md:justify-start fade-in-section">
-                        <div class="timeline-item w-full md:w-auto">
-                            <div class="timeline-dot"></div>
-                            <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                                <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-600 text-white font-heading font-bold text-xl shadow-lg mb-4">1</span>
-                                <h3 class="font-heading font-semibold text-2xl text-slate-900 dark:text-white mt-4">Create Account</h3>
-                                <p class="mt-2 text-slate-600 dark:text-slate-300">Sign up for a free account in less than a minute with just your email.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="timeline-item-container w-full md:w-auto flex md:justify-end fade-in-section">
-                        <div class="timeline-item w-full md:w-auto">
-                            <div class="timeline-dot"></div>
-                             <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                                <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-600 text-white font-heading font-bold text-xl shadow-lg mb-4">2</span>
-                                <h3 class="font-heading font-semibold text-2xl text-slate-900 dark:text-white mt-4">Add Devices</h3>
-                                <p class="mt-2 text-slate-600 dark:text-slate-300">Register your devices using our simple setup process and intuitive interface.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="timeline-item-container w-full md:w-auto flex md:justify-start fade-in-section">
-                        <div class="timeline-item w-full md:w-auto">
-                            <div class="timeline-dot"></div>
-                             <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                                <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-600 text-white font-heading font-bold text-xl shadow-lg mb-4">3</span>
-                                <h3 class="font-heading font-semibold text-2xl text-slate-900 dark:text-white mt-4">Configure Settings</h3>
-                                <p class="mt-2 text-slate-600 dark:text-slate-300">Customize tracking preferences, security options, and notification settings.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="timeline-item-container w-full md:w-auto flex md:justify-end fade-in-section">
-                        <div class="timeline-item w-full md:w-auto">
-                            <div class="timeline-dot"></div>
-                             <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                                <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-600 text-white font-heading font-bold text-xl shadow-lg mb-4">4</span>
-                                <h3 class="font-heading font-semibold text-2xl text-slate-900 dark:text-white mt-4">Stay Protected</h3>
-                                <p class="mt-2 text-slate-600 dark:text-slate-300">Monitor your devices and receive instant alerts when something happens.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="team" class="py-20 lg:py-32 bg-white dark:bg-slate-800/50">
-            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="text-center max-w-3xl mx-auto fade-in-section">
-                    <span class="font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider">Our Team</span>
-                    <h2 class="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white mt-3">
-                        Meet the Innovators
-                    </h2>
-                    <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">
-                        This project is brought to you by a dedicated team of GMI students, guided by expert supervision.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mt-16">
-                    <div class="fade-in-section text-center transition-all duration-300 hover:-translate-y-2">
-                        <img class="w-32 h-32 rounded-full mx-auto shadow-lg" src="/public/assets/images/Gambar Izzuddin.png" alt="Muhammad Izzuddin" loading="lazy">
-                        <h4 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-4">Muhammad Izzuddin</h4>
-                        <p class="text-primary-600 dark:text-primary-400">Project Lead</p>
-                    </div>
-                    <div class="fade-in-section text-center transition-all duration-300 hover:-translate-y-2">
-                        <img class="w-32 h-32 rounded-full mx-auto shadow-lg" src="/public/assets/images/Gambar Idris.png" alt="Muhammad Idris Haris" loading="lazy">
-                        <h4 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-4">Idris Haris</h4>
-                        <p class="text-primary-600 dark:text-primary-400">UI&UX Developer</p>
-                    </div>
-                    <div class="fade-in-section text-center transition-all duration-300 hover:-translate-y-2 sm:col-span-2 lg:col-span-1">
-                        <img class="w-32 h-32 rounded-full mx-auto shadow-lg border-4 border-primary-600" src="/public/assets/images/Gambar Sir Amir.png" alt="Sir Amir Hakim Sahrir" loading="lazy">
-                        <h4 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-4">Sir Amir Hakim Sahrir</h4>
-                        <p class="text-primary-600 dark:text-primary-400">Project Supervisor</p>
-                    </div>
-                    <div class="fade-in-section text-center transition-all duration-300 hover:-translate-y-2">
-                        <img class="w-32 h-32 rounded-full mx-auto shadow-lg" src="/public/assets/images/Gambar Syasya.png" alt="Syasya Syazwina" loading="lazy">
-                        <h4 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-4">Syasya Syazwina</h4>
-                        <p class="text-primary-600 dark:text-primary-400">Security Tester</p>
-                    </div>
-                    <div class="fade-in-section text-center transition-all duration-300 hover:-translate-y-2">
-                        <img class="w-32 h-32 rounded-full mx-auto shadow-lg" src="/public/assets/images/Gambar Toma.png" alt="Wan Muhamad Haziq" loading="lazy">
-                        <h4 class="font-heading font-semibold text-xl text-slate-900 dark:text-white mt-4">Wan Haziq</h4>
-                        <p class="text-primary-600 dark:text-primary-400">Backend Developer</p>
-                    </div>
-                </div>
-                <div class="text-center mt-12 fade-in-section">
-                    <a href="/about" class="inline-flex items-center justify-center px-6 py-3 rounded-full text-base font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-all">
-                        Learn More About Our Mission
-                        <i class="bi bi-arrow-right-short ml-1"></i>
+                <div class="mt-12 text-center fade-in-section">
+                    <a href="/features" class="inline-flex items-center justify-center px-6 py-3 rounded-full text-base font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-slate-800 transition-all">
+                        View All Features <i class="bi bi-arrow-right ml-2"></i>
                     </a>
                 </div>
             </div>
         </section>
 
-        <section id="testimonials" class="py-20 lg:py-32 bg-slate-50 dark:bg-slate-900/50">
-            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="text-center max-w-3xl mx-auto fade-in-section">
-                    <span class="font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider">Testimonials</span>
-                    <h2 class="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white mt-3">
-                        What Our Users Say
-                    </h2>
-                    <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">
-                        Don't just take our word for it. Here's what our satisfied users have to say.
-                    </p>
-                </div>
-                
-                <!-- REWRITTEN TESTIMONIALS -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-t-4 border-t-primary-600 border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <i class="bi bi-quote text-5xl text-primary-200 dark:text-primary-900/50"></i>
-                        <p class="text-lg text-slate-800 dark:text-slate-100 mt-4 italic">
-                            "I left my phone at a cafe. The finder saw my message on the lock screen, sent me a photo via the Evidence Logs, and I retrieved it safely!"
-                        </p>
-                        <div class="flex items-center mt-6">
-                            <img class="w-12 h-12 rounded-full" src="https://placehold.co/48x48/6772f4/white?text=SC" alt="Sarah Chen" loading="lazy">
-                            <div class="ml-4">
-                                <div class="font-semibold text-slate-900 dark:text-white">Sarah Chen</div>
-                                <div class="text-sm text-slate-500 dark:text-slate-400">Student</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-t-4 border-t-primary-600 border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <i class="bi bi-quote text-5xl text-primary-200 dark:text-primary-900/50"></i>
-                        <p class="text-lg text-slate-800 dark:text-slate-100 mt-4 italic">
-                            "I couldn't find my phone in my messy room. I triggered the loud alarm remotely, and found it under a pile of clothes instantly. Super useful!"
-                        </p>
-                        <div class="flex items-center mt-6">
-                            <img class="w-12 h-12 rounded-full" src="https://placehold.co/48x48/6772f4/white?text=JW" alt="James Wilson" loading="lazy">
-                            <div class="ml-4">
-                                <div class="font-semibold text-slate-900 dark:text-white">James Wilson</div>
-                                <div class="text-sm text-slate-500 dark:text-slate-400">Architect</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="fade-in-section bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-soft border border-t-4 border-t-primary-600 border-slate-200 dark:border-slate-700 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
-                        <i class="bi bi-quote text-5xl text-primary-200 dark:text-primary-900/50"></i>
-                        <p class="text-lg text-slate-800 dark:text-slate-100 mt-4 italic">
-                            "Marking my device as lost was seamless. The real-time tracking showed me exactly where I dropped it during my evening jog."
-                        </p>
-                        <div class="flex items-center mt-6">
-                            <img class="w-12 h-12 rounded-full" src="https://placehold.co/48x48/6772f4/white?text=MR" alt="Maria Rodriguez" loading="lazy">
-                            <div class="ml-4">
-                                <div class="font-semibold text-slate-900 dark:text-white">Maria Rodriguez</div>
-                                <div class="text-sm text-slate-500 dark:text-slate-400">Teacher</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="faq" class="py-20 lg:py-32 bg-white dark:bg-slate-800/50">
-            <div class="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-                <div class="text-center max-w-3xl mx-auto fade-in-section">
-                    <span class="font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider">Questions?</span>
-                    <h2 class="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white mt-3">
-                        Frequently Asked Questions
-                    </h2>
-                    <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">
-                        Find answers to common questions about Trace'N Find.
-                    </p>
-                </div>
-                
-                <div class="mt-16 space-y-4">
-                    <details class="faq-item fade-in-section bg-white dark:bg-slate-800 p-6 rounded-xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg">
-                        <summary class="flex justify-between items-center font-semibold text-lg text-slate-900 dark:text-white">
-                            How accurate is the location tracking?
-                            <i class="bi bi-chevron-down icon transition-transform duration-300"></i>
-                        </summary>
-                        <p class="mt-4 text-slate-900 dark:text-white">
-                            Trace'N Find uses multiple technologies including GPS, Wi-Fi, cellular networks, and Bluetooth to provide the most accurate location possible. In optimal conditions, accuracy can be within 5 meters outdoors.
-                        </p>
-                    </details>
-                    <details class="faq-item fade-in-section bg-white dark:bg-slate-800 p-6 rounded-xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg">
-                        <summary class="flex justify-between items-center font-semibold text-lg text-slate-900 dark:text-white">
-                            Is my data secure with Trace'N Find?
-                            <i class="bi bi-chevron-down icon transition-transform duration-300"></i>
-                        </summary>
-                        <p class="mt-4 text-slate-900 dark:text-white">
-                            Absolutely. We use end-to-end encryption for all location data and personal information. Our multi-factor authentication ensures that only you can access your account. We never share your data.
-                        </p>
-                    </details>
-                    <details class="faq-item fade-in-section bg-white dark:bg-slate-800 p-6 rounded-xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg">
-                        <summary class="flex justify-between items-center font-semibold text-lg text-slate-900 dark:text-white">
-                            What devices are supported?
-                            <i class="bi bi-chevron-down icon transition-transform duration-300"></i>
-                        </summary>
-                        <p class="mt-4 text-slate-900 dark:text-white">
-                            Currently, Trace'N Find supports **Android** devices and **Windows** computers. We are actively working on expanding support to iOS and macOS devices in the near future.
-                        </p>
-                    </details>
-                    <details class="faq-item fade-in-section bg-white dark:bg-slate-800 p-6 rounded-xl shadow-soft border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg">
-                        <summary class="flex justify-between items-center font-semibold text-lg text-slate-900 dark:text-white">
-                            Can I track my device if it's turned off?
-                            <i class="bi bi-chevron-down icon transition-transform duration-300"></i>
-                        </summary>
-                        <p class="mt-4 text-slate-900 dark:text-white">
-                            If the device is completely powered off, real-time tracking isn't possible. However, Trace'N Find will show you the **last known location** before the device was turned off. Once the device is turned back on and connects to the internet, tracking will resume automatically.
-                        </p>
-                    </details>
-                </div>
-            </div>
-        </section>
-        
+        <!-- CTA Section -->
         <section id="cta" class="py-20 lg:py-32 hero-gradient animate-cta-glow">
             <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="text-center max-w-3xl mx-auto fade-in-section">
@@ -736,14 +408,12 @@
                         Join thousands of users who trust Trace'N Find to protect their devices.
                         Get started for free, no credit card required.
                     </p>
-                    
-                    <!-- CTA BUTTONS with APK Download -->
                     <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                         <a href="/register" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-primary-700 bg-white hover:bg-slate-100 transition-all transform hover:-translate-y-1 shadow-lg">
                             Get Started for Free
                         </a>
-                        
-                        <a href="/public/assets/downloads/TraceNFind.apk" download="TraceNFind.apk" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-white border-2 border-white hover:bg-white hover:text-primary-600 transition-all transform hover:-translate-y-1 shadow-lg">
+                        <!-- FIXED DOWNLOAD LINK -->
+                        <a href="/public/assets/downloads/Trace-N-Find.apk" download="Trace-N-Find.apk" class="inline-flex items-center justify-center px-8 py-3.5 rounded-full text-base font-semibold text-white border-2 border-white hover:bg-white hover:text-primary-600 transition-all transform hover:-translate-y-1 shadow-lg">
                             <i class="bi bi-android2 mr-2 text-xl"></i>
                             Download .APK
                         </a>
@@ -751,28 +421,31 @@
                 </div>
             </div>
         </section>
-
     </main>
 
+    <!-- Footer -->
     <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
         <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
             <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8">
+                <!-- Footer Brand -->
                 <div class="md:col-span-4 lg:col-span-2">
-                    <a href="#home" class="flex items-center gap-2 no-underline">
-                        <i class="bi bi-geo-alt-fill text-3xl text-primary-600"></i>
+                    <a href="/index" class="flex items-center gap-2 no-underline">
+                        <!-- CORRECTED LOGO -->
+                        <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 object-contain">
                         <span class="font-heading font-bold text-2xl text-slate-900 dark:text-white">Trace'N Find</span>
                     </a>
                     <p class="mt-4 text-slate-600 dark:text-slate-300 max-w-xs">
                         Advanced device tracking with real-time location and security features.
                     </p>
                     <div class="mt-6 flex gap-4">
-                        <a href="https://facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-facebook"></i></a>
-                        <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Twitter" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-twitter"></i></a>
-                        <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-instagram"></i></a>
-                        <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on LinkedIn" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-linkedin"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-twitter"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><i class="bi bi-linkedin"></i></a>
                     </div>
                 </div>
                 
+                <!-- Links Columns -->
                 <div>
                     <h5 class="font-heading font-semibold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Product</h5>
                     <ul class="mt-4 space-y-3">
@@ -810,10 +483,12 @@
         </div>
     </footer>
 
-    <button id="backToTop" aria-label="Back to top" class="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-40 hover:bg-primary-700 hover:scale-110">
+    <!-- Back to Top Button -->
+    <button id="backToTop" aria-label="Back to top" class="hover:bg-primary-700 hover:scale-110">
         <i class="bi bi-arrow-up text-xl"></i>
     </button>
-
+    
+    <!-- JS for App Shell & Interactions -->
     <script src="/public/js/app.js" type="module"></script>
 </body>
 </html>

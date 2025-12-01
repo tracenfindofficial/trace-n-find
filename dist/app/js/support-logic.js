@@ -13,7 +13,11 @@ import {
     showToast,
     doc,
     setLoadingState,
-    sanitizeHTML // <-- FIX: ADD THIS LINE
+    sanitizeHTML,
+    // NEW: Imports for notification logic
+    query,
+    where,
+    onSnapshot
 } from '/app/js/app-shell.js';
 
 // --- DOM Elements ---
@@ -24,6 +28,8 @@ const elements = {
     subjectInput: document.getElementById('support-subject'),
     messageInput: document.getElementById('support-message'),
     submitBtn: document.getElementById('submit-ticket-btn'),
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
 };
 
 let isSubmitting = false; // Local state for submit button
@@ -46,6 +52,7 @@ function waitForAuth(callback) {
 waitForAuth((user) => {
     preFillForm(user);
     setupEventListeners(user.uid);
+    listenForUnreadNotifications(user.uid); // Start listening for notifications
     // BUG FIX: Removed the local re-definition of window.setLoadingState
 });
 
@@ -77,6 +84,34 @@ async function preFillForm(user) {
  */
 function setupEventListeners(userId) {
     elements.supportForm.addEventListener('submit', (e) => handleSubmitTicket(e, userId));
+}
+
+// --- Notification Logic ---
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
 }
 
 // --- Core Logic ---

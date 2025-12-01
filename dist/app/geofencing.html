@@ -198,7 +198,7 @@
         .main-content {
             flex: 1; margin-left: var(--sidebar-width-full);
             transition: margin-left 0.3s ease; display: flex; flex-direction: column;
-            /* BUG FIX: Removed `height: 100vh;` */
+            height: 100vh;
         }
         .sidebar-mini + .main-content { margin-left: var(--sidebar-width-mini); }
         
@@ -240,27 +240,29 @@
             border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
             width: 90%; max-width: 500px; padding: 1.5rem;
             transform: scale(0.95); opacity: 0; transition: var(--transition-smooth);
-            position: relative; /* Added for absolute close button */
         }
         .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
-        
-        /* Button */
+        /* Generic button styles for modal */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.65rem 1.25rem;
+            padding: 0.5rem 1rem;
             font-weight: 600;
             border-radius: 0.5rem;
-            transition: all 0.2s ease;
             border: none;
             cursor: pointer;
         }
-        .btn-primary { background-color: var(--color-primary); color: white; }
-        .btn-primary:hover { background-color: #3a50d0; }
-        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        .btn-secondary {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+        .btn-secondary:hover { background-color: var(--color-border); }
         .btn-danger { background-color: var(--color-danger); color: white; }
-        .btn-danger:hover { background-color: #b91c1c; } /* Darker red */
+        .btn-warning { background-color: var(--color-warning); color: var(--color-text-primary); }
+        .btn-info { background-color: var(--color-info); color: white; }
+        .btn-success { background-color: var(--color-success); color: white; }
 
         /* ==========================================================================
            GEOFENCING STYLES
@@ -514,18 +516,18 @@
     <!-- Confirmation Modal -->
     <div id="confirmationModal" class="modal-overlay">
         <div class="modal-content">
+            <!-- ACCESSIBILITY FIX: Added aria-label -->
             <button id="modalClose" aria-label="Close modal" class="absolute top-4 right-4 text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
             <h3 id="modalTitle" class="text-xl font-heading font-bold mb-2 text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
             <p id="modalMessage" class="text-text-secondary dark:text-dark-text-secondary mb-6">Are you sure you want to proceed?</p>
             <div class="flex justify-end gap-3">
-                <button id="modalCancel" class="btn bg-slate-200 dark:bg-slate-600 text-text-primary dark:text-dark-text-primary hover:bg-slate-300 dark:hover:bg-slate-500">Cancel</button>
+                <button id="modalCancel" class="btn btn-secondary">Cancel</button>
                 <button id="modalConfirm" class="btn btn-danger">Confirm</button>
             </div>
         </div>
-    </div>   
-
-    <!-- This wrapper is different from map-view.html, so we keep its class -->
-    <div class="app-container flex flex-grow-1 overflow-hidden h-full">
+    </div>
+    
+    <div class="app-container flex flex-grow-1 overflow-hidden">
         <!-- ======================================================================
              SIDEBAR
              ====================================================================== -->
@@ -533,10 +535,12 @@
             <!-- Sidebar Header -->
             <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
                 <!-- INTEGRATION FIX: Root-relative path -->
+                <!-- LOGO CHANGE: Replaced <i> tag with <img> to use image_2c91b8.png for branding -->
                 <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
-                    <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary-600 p-2 rounded-lg"></i>
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                     <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
                 </a>
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
                 <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
                     <i class="bi bi-chevron-bar-left"></i>
                 </button>
@@ -554,8 +558,9 @@
                     </li>
                     <li>
                         <a href="/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-phone nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-phone -->
                             <span class="nav-link-text">My Devices</span>
+                            <!-- UI/UX FIX: Added device count badge -->
                             <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
                         </a>
                     </li>
@@ -568,7 +573,7 @@
                     <li>
                         <!-- This is the active page -->
                         <a href="/geofencing" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary-600 dark:text-primary-400 bg-primary-light dark:bg-dark-bg-card font-medium no-underline">
-                            <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-geo-alt-fill -->
                             <span class="nav-link-text">Geofencing</span>
                         </a>
                     </li>
@@ -614,6 +619,7 @@
                         <div id="userEmail" class="user-role text-sm text-text-secondary dark:text-dark-text-secondary truncate">...</div>
                     </div>
                 </div>
+                <!-- ACCESSIBILITY FIX: Added aria-label for mini sidebar -->
                 <button id="logoutButton" aria-label="Logout" class="logout-button w-full flex items-center gap-3 py-3 px-4 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all">
                     <i class="bi bi-box-arrow-right nav-link-icon text-lg w-8"></i>
                     <span class="logout-text font-medium">Logout</span>
@@ -628,6 +634,7 @@
             <!-- Header -->
             <header class="header flex items-center justify-between px-6">
                 <!-- Mobile Menu Toggle -->
+                <!-- ACCESSIBILITY FIX: Added aria-label -->
                 <button id="mobileMenuToggle" aria-label="Open navigation menu" class="lg:hidden text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400">
                     <i class="bi bi-list"></i>
                 </button>
@@ -644,23 +651,26 @@
                     </div>
                     
                     <button id="themeToggle" aria-label="Toggle theme" class="text-xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+                        <!-- Icon state is synced by app-shell.js -->
                         <i class="bi bi-moon-fill"></i>
                     </button>
 
                     <!-- INTEGRATION FIX: Root-relative path -->
                     <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
                         <i class="bi bi-bell"></i>
+                        <!-- FIX: Corrected bg-danger-500 to bg-danger -->
                         <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
                     </a>
                     
                     <div class="relative">
-                        <button id="userMenuToggle" aria-label="Open user menu" class="block w-10 h-10 rounded-full">
-                            <img src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-full h-full rounded-full cursor-pointer hover:ring-2 hover:ring-primary-600 dark:hover:ring-primary-400 transition-all">
+                        <!-- ACCESSIBILITY FIX: Added aria-label -->
+                        <button id="userMenuToggle" aria-label="Open user menu" class="block w-10 h-10 rounded-full hover:ring-2 hover:ring-primary-600 dark:hover:ring-primary-400 transition-all">
+                            <img src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="User Avatar" class="user-avatar-display w-full h-full rounded-full cursor-pointer">
                         </button>
                         <!-- User Dropdown -->
                         <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
                             <!-- INTEGRATION FIX: Root-relative paths -->
-                            <a href="/profilel" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
+                            <a href="/profile" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
                             <a href="/settings" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Settings</a>
                             <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-100 dark:hover:bg-red-900/30">Logout</button>
                         </div>

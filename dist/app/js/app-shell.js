@@ -73,6 +73,11 @@ export const fbAuth = getAuth(app);
 export const fbDB = getFirestore(app, "tracenfind");
 export const fbStorage = getStorage(app);
 
+// --- AUDIO SETUP (Global) ---
+// Loads the kurukuru sound for notifications
+const notificationSound = new Audio('/public/assets/audio/kurukuru.mp3');
+let isFirstNotificationLoad = true;
+
 // NOTE: window.librariesLoaded should be set true by the end of DOMContentLoaded if all required global libraries (Leaflet, Chart) are present.
 // For this environment, we explicitly set it true later to ensure dependent modules run.
 window.librariesLoaded = false;
@@ -85,7 +90,12 @@ export const appState = {
     userDevices: [],
     // BUG FIX: Removed all the Firebase functions from this object.
     // They were not being exported correctly.
+    previousDevices: {},
+    isFirstLoad: true
 };
+
+let unsubscribeDevices = null;
+let unsubscribeNotifications = null;
 
 // --- EXPOSED UTILITY FUNCTIONS ---
 // Export common utility functions used across different page logics
@@ -121,8 +131,7 @@ export const SECURITY_BUTTONS = [
     { id: 'action-ring', icon: 'bi-bell-fill', label: 'Sound Alarm', type: 'info', textClass: 'text-blue-500' },
     { id: 'action-view-photos', icon: 'bi-images', label: 'View Photos', type: 'primary', textClass: 'text-indigo-500' },
     { id: 'action-view-messages', icon: 'bi-chat-quote-fill', label: 'View Messages', type: 'success', textClass: 'text-green-500' },
-    { id: 'action-lost', icon: 'bi-exclamation-diamond-fill', label: 'Mark as Lost', type: 'danger', textClass: 'text-red-500' }
-    // "Wipe" has been removed from this list
+    { id: 'action-lost', icon: 'bi-exclamation-diamond-fill', label: 'Mark as Lost', type: 'danger', textClass: 'text-red-500' },
 ];
 
 //
@@ -176,15 +185,15 @@ const elements = {
     modalCancel: document.getElementById('modalCancel'),
     
     // Sidebar elements
-    sidebarDeviceCount: document.getElementById('sidebarDeviceCount')
+    sidebarDeviceCount: document.getElementById('sidebarDeviceCount'),
+    
+    // Notification elements (Global)
+    notificationBadge: document.getElementById('notificationBadge')
 };
 
 // --- AUTHENTICATION & INITIALIZATION ---
 
 // *** REDIRECT LOOP FIX ***
-// This flag tracks if Firebase auth has given its *first* response.
-// This prevents redirecting to login before Firebase has had time to load
-// the saved user session from browser storage.
 let authReady = false;
 
 onAuthStateChanged(fbAuth, (user) => {
@@ -209,6 +218,9 @@ onAuthStateChanged(fbAuth, (user) => {
         
         // 2. Load devices listener
         listenForUserDevices(user.uid);
+        
+        // 3. Start Global Notification Listener (Sound + Badge)
+        initGlobalNotifications(user.uid);
 
         loadPageSpecificLibraries();
 
@@ -216,6 +228,15 @@ onAuthStateChanged(fbAuth, (user) => {
         // User is null.
         appState.isAuthenticated = false;
         appState.currentUser = null;
+        
+        if (unsubscribeDevices) {
+            unsubscribeDevices();
+            unsubscribeDevices = null;
+        }
+        if (unsubscribeNotifications) {
+            unsubscribeNotifications();
+            unsubscribeNotifications = null;
+        }
         
         // *** REDIRECT LOOP FIX ***
         // Only redirect to login IF we are currently on an app page
@@ -232,9 +253,6 @@ onAuthStateChanged(fbAuth, (user) => {
 });
 
 // *** REDIRECT LOOP FIX ***
-// Add this "watchdog" timer.
-// If auth isn't ready after 2.5 seconds (authReady is still false),
-// and we are on an /app/ page, we are definitely not logged in.
 setTimeout(() => {
     if (!authReady && window.location.pathname.startsWith('/app/')) {
         console.warn("Auth initialization timeout. Forcing redirect.");
@@ -245,6 +263,56 @@ setTimeout(() => {
         hidePreloader();
     }
 }, 2500); // 2.5 second timeout
+
+// --- GLOBAL NOTIFICATION LOGIC (Sound + Badge) ---
+function initGlobalNotifications(userId) {
+
+    if (unsubscribeNotifications) {
+        unsubscribeNotifications();
+        unsubscribeNotifications = null;
+    }
+
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    // Only listen for unread notifications
+    const q = query(notifsRef, where("read", "==", false));
+
+    unsubscribeNotifications = onSnapshot(q, (snapshot) => {
+        const count = snapshot.size;
+        
+        // 1. Update Badge
+        if (elements.notificationBadge) {
+            if (count > 0) {
+                elements.notificationBadge.textContent = count > 99 ? '99+' : count;
+                elements.notificationBadge.classList.remove('hidden');
+                elements.notificationBadge.classList.add('animate-pulse');
+            } else {
+                elements.notificationBadge.classList.add('hidden');
+                elements.notificationBadge.classList.remove('animate-pulse');
+            }
+        }
+
+        // 2. Play Sound Logic
+        if (!isFirstNotificationLoad) {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                    // New unread notification arrived
+                    try {
+                        notificationSound.currentTime = 0; // Reset to start
+                        notificationSound.play().catch(e => console.warn("Audio autoplay blocked:", e));
+                    } catch (e) {
+                        console.warn("Could not play notification sound", e);
+                    }
+                }
+            });
+        } else {
+            // Skip sound on the very first load (so it doesn't ding on page refresh)
+            isFirstNotificationLoad = false;
+        }
+
+    }, (error) => {
+        console.error("Error listening for global notifications:", error);
+    });
+}
 
 /**
  * Dynamically loads a JavaScript file.
@@ -375,12 +443,18 @@ async function fetchUserProfile(uid) {
  * @param {string} userId - The authenticated user's ID.
  */
 function listenForUserDevices(userId) {
+
+    if (unsubscribeDevices) {
+        unsubscribeDevices();
+        unsubscribeDevices = null;
+    }
+
     // *** DATABASE PATH FIX ***
     // This path now correctly matches firestore.rules and auth.js.
     const devicesRef = collection(fbDB, 'user_data', userId, 'devices'); 
-    const q = query(devicesRef, orderBy('lastSeen', 'desc'));
+    const q = query(devicesRef, orderBy('name', 'asc'));
 
-    onSnapshot(q, (snapshot) => {
+    unsubscribeDevices = onSnapshot(q, (snapshot) => {
         appState.userDevices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
         // Update the device count badge in the sidebar
@@ -392,6 +466,7 @@ function listenForUserDevices(userId) {
         // Signal that device data has loaded (used by map-view, dashboard)
         window.dispatchEvent(new CustomEvent('devicesLoaded', { detail: appState.userDevices }));
 
+        checkDeviceStatusChanges(userId, appState.userDevices);
 
     }, (error) => {
         console.error("Error listening for user devices:", error);
@@ -531,5 +606,137 @@ function hidePreloader() {
         setTimeout(() => {
             if (elements.appPreloader) elements.appPreloader.style.display = 'none';
         }, 300);
+    }
+}
+
+// --- GLOBAL DEVICE MONITORING LOGIC ---
+
+function checkDeviceStatusChanges(userId, currentDevices) {
+    if (appState.isFirstLoad) {
+        // Initialize cache on first load
+        currentDevices.forEach(device => {
+            appState.previousDevices[device.id] = { ...device };
+        });
+        appState.isFirstLoad = false;
+        return;
+    }
+
+    currentDevices.forEach(device => {
+        const prev = appState.previousDevices[device.id];
+        if (!prev) {
+            appState.previousDevices[device.id] = { ...device };
+            return;
+        }
+
+        // 1. Detect Tracking START (Offline -> Online)
+        if (prev.status !== 'online' && device.status === 'online') {
+            createAutoNotification(userId, device, 'tracking-start');
+        }
+
+        // 2. Detect Tracking STOP (Any -> Offline)
+        if (prev.status !== 'offline' && device.status === 'offline') {
+            createAutoNotification(userId, device, 'tracking-stop');
+        }
+
+        // 3. Detect SIM Eject / Change
+        if (prev.security?.sim_status && device.security?.sim_status && 
+            prev.security.sim_status !== device.security.sim_status && 
+            device.security.sim_status.includes("🚨")) {
+             createAutoNotification(userId, device, 'sim-alert');
+        }
+
+        // 4. Detect Finder Message
+        if (device.finder_message && (!prev || prev.finder_message !== device.finder_message)) {
+             createAutoNotification(userId, device, 'finder-message');
+        }
+
+        // 5. Detect Finder Photo
+        if (device.finder_photo_url && (!prev || prev.finder_photo_url !== device.finder_photo_url)) {
+             createAutoNotification(userId, device, 'finder-photo');
+        }
+
+        // Update Cache
+        appState.previousDevices[device.id] = { ...device };
+    });
+}
+
+async function createAutoNotification(userId, device, type) {
+    const safeName = sanitizeHTML(device.name);
+    let title, message, notifType, toastType;
+
+    switch(type) {
+        case 'tracking-start':
+            title = 'Tracking Started';
+            message = `${safeName} is now online and tracking.`;
+            notifType = 'tracking-start'; 
+            toastType = 'success';
+            break;
+        case 'tracking-stop':
+            title = 'Tracking Stopped';
+            message = `${safeName} has gone offline.`;
+            notifType = 'tracking-stop';
+            toastType = 'warning';
+            break;
+        case 'sim-alert':
+            title = 'SIM Security Alert';
+            message = `Critical: ${device.security.sim_status} detected on ${safeName}!`;
+            notifType = 'sim-alert';
+            toastType = 'error';
+            break;
+        case 'finder-message':
+            title = 'New Message from Finder';
+            message = `Message received from ${safeName}: "${sanitizeHTML(device.finder_message)}"`;
+            notifType = 'message-received';
+            toastType = 'info';
+            break;
+        case 'finder-photo':
+            title = 'New Photo from Finder';
+            message = `A new photo was captured from ${safeName}.`;
+            notifType = 'photo-received';
+            toastType = 'info';
+            break;
+        default:
+            return;
+    }
+
+    // 1. Show Visual Toast (Always show this locally so the user sees it immediately)
+    showToast(title, message, toastType);
+
+    // --- FIX: DEDUPLICATION LOGIC ---
+    // Check if a similar notification exists in the last 10 seconds to prevent
+    // multiple tabs from creating the same notification.
+    try {
+        const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+        // Fetch only the 3 most recent notifications
+        const q = query(notifsRef, orderBy('timestamp', 'desc'), limit(3));
+        const snapshot = await getDocs(q);
+
+        const isDuplicate = snapshot.docs.some(doc => {
+            const data = doc.data();
+            // Check if title matches AND it was created less than 10 seconds ago
+            const now = new Date();
+            const notifTime = data.timestamp ? data.timestamp.toDate() : new Date();
+            const diffSeconds = (now - notifTime) / 1000;
+            
+            return data.title === title && data.message === message && diffSeconds < 10;
+        });
+
+        if (isDuplicate) {
+            console.log(`Duplicate notification prevented: ${title}`);
+            return; // STOP here, don't save to DB
+        }
+
+        // 2. If not duplicate, Save to Database
+        await addDoc(notifsRef, {
+            title: title,
+            message: message,
+            type: notifType,
+            read: false,
+            timestamp: serverTimestamp()
+        });
+        console.log(`Global Notification created: ${type}`);
+
+    } catch(e) {
+        console.error("Error managing notifications:", e);
     }
 }

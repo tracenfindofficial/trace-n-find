@@ -7,6 +7,9 @@
     <meta name="description" content="Profile - Trace'N Find: Smart Tracking for Lost & Stolen Devices">
     <title>Profile - Trace'N Find</title>
 
+    <!-- Add reCAPTCHA Enterprise Script -->
+    <script src="https://www.google.com/recaptcha/enterprise.js?render=6LdnxQcsAAAAAOQl5jTa-VhC4aek_xTzDqSTp6zI"></script>
+
     <!-- 
       PERFORMANCE FIX: 
       Render-blocking script to prevent Flash of Unstyled Content (FOUC).
@@ -106,7 +109,7 @@
             color: var(--color-text-primary);
         }
         
-        /* App Layout Styles (from app-shell.js) */
+        /* Theme Variables */
         :root {
             --sidebar-width-full: 280px;
             --sidebar-width-mini: 80px;
@@ -124,11 +127,8 @@
             --color-primary-rgb: 67, 97, 238;
             --color-success: #10b981;
             --color-warning: #f59e0b;
-            --color-warning-rgb: 245, 158, 11;
             --color-danger: #ef4444;
-            --color-danger-rgb: 239, 68, 68;
             --color-info: #06b6d4;
-            --color-info-rgb: 6, 182, 212;
 
             --dark-bg-primary: #0f172a;
             --dark-bg-card: #1e293b;
@@ -201,6 +201,7 @@
             border: 1px solid var(--color-border); white-space: nowrap;
             opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease;
             pointer-events: none;
+            z-index: 20;
         }
         .sidebar-mini .nav-link:hover .nav-link-text { opacity: 1; visibility: visible; transition-delay: 0.2s; }
         
@@ -227,7 +228,7 @@
         
         /* Toast Container */
         .toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
-        .toast { width: 350px; max-width: 90vw; padding: 1rem 1.25rem; border-radius: 0.75rem; background: var(--color-bg-card); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid var(--color-border); border-left-width: 4px; display: flex; align-items: flex-start; gap: 0.75rem; opacity: 0; transform: translateX(100%); transition: all 0.4s ease-in-out; }
+        .toast { width: 350px; max-width: 90vw; padding: 1rem 1.25rem; border-radius: 0.75rem; background: var(--color-bg-card); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); border: 1px solid var(--color-border); border-left-width: 4px; display: flex; align-items: flex-start; gap: 0.75rem; opacity: 0; transform: translateX(100%); transition: all 0.4s ease-in-out; }
         .toast.show { opacity: 1; transform: translateX(0); }
         .toast-success { border-left-color: var(--color-success); } .toast-success .toast-icon { color: var(--color-success); }
         .toast-error { border-left-color: var(--color-danger); } .toast-error .toast-icon { color: var(--color-danger); }
@@ -301,10 +302,10 @@
         }
 
         /* ==========================================================================
-           PROFILE PAGE STYLES (Similar to Settings)
+           PROFILE PAGE STYLES
            ========================================================================== */
         
-        /* Settings Card */
+        /* Profile Card */
         .profile-card {
             background-color: var(--color-bg-card);
             border: 1px solid var(--color-border);
@@ -378,7 +379,7 @@
 </head>
 <body class="h-full flex flex-col bg-bg-primary dark:bg-dark-bg-primary font-sans text-text-primary dark:text-dark-text-primary overflow-hidden">
     <!-- REQUIRED: Container for reCAPTCHA (used for MFA verification) -->
-    <div id="recaptcha-container"></div>
+    <div id="recaptcha-container-profile"></div>
 
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary-600 text-white">Skip to main content</a>
 
@@ -403,6 +404,26 @@
         </div>
     </div>
     
+    <!-- NEW: OTP Verification Modal -->
+    <div id="otpModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Verification Required</h3>
+                <button id="otpModalClose" class="text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-danger">&times;</button>
+            </div>
+            <p class="text-text-secondary dark:text-dark-text-secondary mb-4 text-sm">
+                We've sent a 6-digit verification code to your phone. Please enter it below to continue.
+            </p>
+            <div class="mb-6">
+                <input type="text" id="otpInput" class="form-input text-center text-2xl tracking-widest font-mono" placeholder="000000" maxlength="6" inputmode="numeric">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button id="otpModalCancel" class="btn btn-secondary">Cancel</button>
+                <button id="otpModalVerify" class="btn btn-primary">Verify</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="app-container flex flex-grow-1 overflow-hidden">
         <!-- ======================================================================
              SIDEBAR
@@ -410,9 +431,9 @@
         <aside id="sidebar" class="sidebar flex -translate-x-full lg:translate-x-0">
             <!-- Sidebar Header -->
             <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
-                <!-- INTEGRATION FIX: Root-relative path -->
+                <!-- Logo update: Image + Text -->
                 <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
-                    <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary-600 p-2 rounded-lg"></i>
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                     <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
                 </a>
                 <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
@@ -423,64 +444,59 @@
             <!-- Sidebar Navigation -->
             <nav class="sidebar-nav">
                 <ul class="flex flex-col gap-1">
-                    <!-- INTEGRATION FIX: All paths are now root-relative -->
                     <li>
-                        <a href="/app/dashboard.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <a href="/dashboard" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Dashboard</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/app/devices.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                        <!-- Icon Update: bi-phone -->
+                        <a href="/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-phone nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">My Devices</span>
                             <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/app/map-view.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <a href="/map-view" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-map nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Full Map</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/app/geofencing.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                        <!-- Icon Update: bi-geo-alt-fill -->
+                        <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                            <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Geofencing</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/app/security-actions.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <a href="/security-actions" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-shield-lock nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Security</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/app/location-history.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <a href="/location-history" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-clock-history nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">History</span>
                         </a>
                     </li>
                       <li>
-                        <a href="/app/backup.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <a href="/backup" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-database-down nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Backup & Restore</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/app/notifications.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-bell nav-link-icon text-lg w-8"></i>
-                            <span class="nav-link-text">Notifications</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/app/settings.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <a href="/settings" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-gear nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Settings</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/app/support.html" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <a href="/support" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-question-circle nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Support</span>
                         </a>
@@ -518,7 +534,7 @@
                 <!-- Header Title -->
                 <h1 class="hidden md:block text-2xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Profile</h1>
                 
-                <!-- Header Actions (Search, Notifications, User) -->
+                <!-- Header Actions -->
                 <div class="flex items-center gap-4 ml-auto">
                     <div class="relative hidden sm:block">
                         <label for="headerSearchInput" class="sr-only">Search</label>
@@ -530,8 +546,8 @@
                         <i class="bi bi-moon-fill"></i>
                     </button>
 
-                    <!-- INTEGRATION FIX: Root-relative path -->
-                    <a href="/app/notifications.html" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+                    <!-- Notification Badge Added -->
+                    <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
                         <i class="bi bi-bell"></i>
                         <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
                     </a>
@@ -542,9 +558,8 @@
                         </button>
                         <!-- User Dropdown -->
                         <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
-                            <!-- INTEGRATION FIX: Root-relative paths -->
-                            <a href="/app/profile.html" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
-                            <a href="/app/settings.html" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Settings</a>
+                            <a href="/profile" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
+                            <a href="/settings" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Settings</a>
                             <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-100 dark:hover:bg-red-900/30">Logout</button>
                         </div>
                     </div>
@@ -583,7 +598,7 @@
                                     <input type="text" id="profile-name" class="form-input" placeholder="Enter your full name" required>
                                 </div>
                                 
-                                <!-- Email Verification Section (NEW) -->
+                                <!-- Email Verification Section -->
                                 <div>
                                     <label for="profile-email" class="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Email Address</label>
                                     <div class="relative">
@@ -645,7 +660,7 @@
                             </div>
                             
                             <div class="mt-6 pt-6 border-t border-border-color dark:border-dark-border-color">
-                                <button id="enable-mfa-btn" class="...">
+                                <button id="enable-mfa-btn" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20">
                                     <i class="bi bi-shield-lock-fill"></i>
                                     <span>Enable 2FA</span>
                                 </button>
@@ -654,8 +669,6 @@
                                     <i class="bi bi-shield-x"></i>
                                     <span>Disable 2FA</span>
                                 </button>
-                                <!-- Hidden container for reCAPTCHA during enrollment -->
-                                <div id="recaptcha-container-profile"></div>
                             </div>
                          </div>
                     </div>
@@ -687,7 +700,7 @@
       CORE APP SCRIPT 
       INTEGRATION FIX: All paths are now root-relative.
     -->
-    <script src="/public/js/app.js" type="module"></script>
+    <script src="/app/js/app-shell.js" type="module"></script>
     
     <!-- 
       PAGE-SPECIFIC SCRIPT

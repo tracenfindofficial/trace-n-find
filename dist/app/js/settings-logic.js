@@ -19,7 +19,12 @@ import {
     RecaptchaVerifier, 
     PhoneAuthProvider, 
     multiFactor, 
-    PhoneMultiFactorGenerator
+    PhoneMultiFactorGenerator,
+    // NEW: Imports for notification logic
+    collection,
+    query,
+    where,
+    onSnapshot
 } from '/app/js/app-shell.js'; // Use relative path
 
 // --- DOM Elements ---
@@ -42,6 +47,9 @@ const elements = {
     sidebarUserName: document.querySelector('.user-name-display'),
     sidebarUserEmail: document.getElementById('userEmail'),
     allUserAvatars: document.querySelectorAll('.user-avatar-display'), // Gets header + sidebar
+    
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
 };
 
 // --- Initialization ---
@@ -63,6 +71,7 @@ waitForAuth((user) => {
     loadUserSettings(user);
     setupEventListeners(user.uid);
     initMfaLogic(user);
+    listenForUnreadNotifications(user.uid); // Start listening for notifications
 });
 
 /**
@@ -82,7 +91,7 @@ async function loadUserSettings(user) {
     
     // 3. Populate preferences
     const currentTheme = user.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    elements.themeToggleSwitch.checked = currentTheme === 'dark';
+    if(elements.themeToggleSwitch) elements.themeToggleSwitch.checked = currentTheme === 'dark';
 }
 
 
@@ -92,9 +101,37 @@ async function loadUserSettings(user) {
 function setupEventListeners(userId) {
     elements.profileForm.addEventListener('submit', (e) => handleSaveProfile(e, userId));
     
-    elements.preferencesForm.addEventListener('submit', (e) => handleSavePreferences(e, userId));
+    if(elements.preferencesForm) elements.preferencesForm.addEventListener('submit', (e) => handleSavePreferences(e, userId));
     
     elements.deleteAccountBtn.addEventListener('click', () => handleDeleteAccount(userId));
+}
+
+// --- Notification Logic ---
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
 }
 
 // --- Core Logic ---

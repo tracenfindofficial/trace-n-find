@@ -11,8 +11,12 @@ import {
     collection,
     serverTimestamp,
     doc,
-    getDoc, // Added for edit mode
-    setDoc  // Added for edit mode
+    getDoc, 
+    setDoc,
+    // NEW: Imports for notification logic
+    query,
+    where,
+    onSnapshot
 } from '/app/js/app-shell.js'; // INTEGRATION FIX: Use root-relative path
 
 // --- State ---
@@ -37,6 +41,9 @@ let isSubmitting = false;
 const elements = {
     // Page Title
     pageTitle: document.getElementById('page-title'),
+    
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
     
     // Step 1
     step1: document.getElementById('step-1'),
@@ -84,6 +91,9 @@ function initAddDevice() {
         return;
     }
     
+    // NEW: Start listening for unread notifications
+    listenForUnreadNotifications(window.currentUserId);
+    
     // Check for Edit Mode
     const params = new URLSearchParams(window.location.search);
     isEditMode = params.get('edit') === 'true';
@@ -98,6 +108,34 @@ function initAddDevice() {
     }
     
     setupEventListeners();
+}
+
+// --- Notification Logic ---
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
 }
 
 /**

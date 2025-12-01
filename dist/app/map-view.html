@@ -224,20 +224,27 @@
             transform: scale(0.95); opacity: 0; transition: var(--transition-smooth);
         }
         .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
-        
-        /* Button */
+        /* Generic button styles for modal */
         .btn {
-            padding: 0.5rem 1rem;
-            font-weight: 600;
-            border-radius: 0.5rem;
-            transition: all 0.2s ease;
-            border: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
         }
+        .btn-secondary {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+        .btn-secondary:hover { background-color: var(--color-border); }
         .btn-danger { background-color: var(--color-danger); color: white; }
-        .btn-danger:hover { background-color: rgba(220, 53, 69, 0.8); }
+        .btn-warning { background-color: var(--color-warning); color: var(--color-text-primary); }
+        .btn-info { background-color: var(--color-info); color: white; }
+        .btn-success { background-color: var(--color-success); color: white; }
 
         /* ==========================================================================
            MAP VIEW STYLES
@@ -490,11 +497,12 @@
     </div>
 
     <div class="app-container flex flex-grow-1 overflow-hidden h-full">
-        <!-- SCALABILITY FIX: Standardized all href paths to be root-relative -->
+        <!-- SCALABILITY FIX: Standardized to root-relative paths -->
         <aside id="sidebar" class="sidebar flex -translate-x-full lg:translate-x-0">
             <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
+                <!-- UPDATED LOGO -->
                 <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
-                    <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary-600 p-2 rounded-lg"></i>
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                     <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
                 </a>
                 <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
@@ -511,8 +519,9 @@
                         </a>
                     </li>
                     <li>
+                        <!-- Updated Icon to bi-phone -->
                         <a href="/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-phone nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">My Devices</span>
                             <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
                         </a>
@@ -524,8 +533,9 @@
                         </a>
                     </li>
                     <li>
+                        <!-- Updated Icon to bi-geo-alt-fill -->
                         <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Geofencing</span>
                         </a>
                     </li>
@@ -597,6 +607,7 @@
                         <i class="bi bi-moon-fill"></i>
                     </button>
 
+                    <!-- Updated Notification Bell & Badge -->
                     <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
                         <i class="bi bi-bell"></i>
                         <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>

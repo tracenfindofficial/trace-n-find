@@ -11,7 +11,9 @@ import {
     doc,
     getDoc,
     getDocs,
-    sanitizeHTML
+    sanitizeHTML,
+    where,
+    onSnapshot
 } from '/app/js/app-shell.js';
 
 // Import Google Map Styles
@@ -19,9 +21,11 @@ import { mapStyles } from '/public/js/map-tiles.js';
 
 // --- Global State ---
 let map = null;
-let pathPolyline = null; // Store the Google Maps Polyline
+let pathPolyline = null; // Store the Google Maps Polyline fallback
 let markers = []; // Store array of marker objects
 let deviceCache = {};
+let directionsService = null;
+let directionsRenderer = null;
 
 // --- DOM Elements ---
 const elements = {
@@ -32,6 +36,9 @@ const elements = {
     timelineList: document.getElementById('timeline-list'),
     timelineEmpty: document.getElementById('timeline-empty'),
     historyTitleHeader: document.getElementById('history-title-header'),
+    
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
     
     // Stats Elements
     statTotalPoints: document.getElementById('stat-total-points'),
@@ -53,35 +60,26 @@ function setDateToToday() {
             .toISOString()
             .split('T')[0];
             
-        // Only update if different to avoid UI flickering
         if (dateInput.value !== localDate) {
             dateInput.value = localDate;
-            // Also update the internal element reference if it exists
             if (elements.dateFilter) elements.dateFilter.value = localDate;
-            console.log("Date enforced to Today:", localDate);
         }
         return localDate;
     }
     return null;
 }
 
-// 1. Run immediately on script load
 setDateToToday();
-
-// 2. Run whenever the page is shown (fixes Back/Forward cache issues)
 window.addEventListener('pageshow', setDateToToday);
 
 function waitForAuth(callback) {
     const check = () => {
-        // Check for Google Maps global instead of Leaflet
         if (window.currentUserId && window.librariesLoaded && typeof google !== 'undefined' && mapStyles) {
             callback(window.currentUserId);
         } else {
             requestAnimationFrame(check);
         }
     };
-    
-    // Initial check
     if (window.currentUserId && window.librariesLoaded && typeof google !== 'undefined') {
         callback(window.currentUserId);
     } else {
@@ -90,24 +88,44 @@ function waitForAuth(callback) {
 }
 
 waitForAuth((userId) => {
-    console.log("INIT: Auth ready. User:", userId);
-
     initMap();
     setupEventListeners(userId);
+    listenForUnreadNotifications(userId);
 
-    // FIX: The "Enforcer" Logic
-    // We check and reset the date every 100ms for 1 second.
-    // This beats the browser's auto-restore feature which might happen slightly after load.
     let attempts = 0;
     const dateEnforcer = setInterval(() => {
         setDateToToday();
         attempts++;
-        if (attempts >= 10) clearInterval(dateEnforcer); // Stop after 1 second
+        if (attempts >= 10) clearInterval(dateEnforcer);
     }, 100);
 
-    // 3. Load Devices (This will eventually call loadHistoryData, using the date we just set)
     loadDeviceOptions(userId);
 });
+
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
+}
 
 function setupEventListeners(userId) {
     if(elements.refreshButton) elements.refreshButton.addEventListener('click', () => loadHistoryData(userId));
@@ -122,7 +140,6 @@ function setupEventListeners(userId) {
     });
 }
 
-// --- Load Devices ---
 async function loadDeviceOptions(userId) {
     const devicesRef = collection(fbDB, 'user_data', userId, 'devices');
     const q = query(devicesRef, orderBy('name', 'asc'));
@@ -155,7 +172,6 @@ async function loadDeviceOptions(userId) {
             if(elements.deviceFilter) elements.deviceFilter.appendChild(option);
         });
         
-        // Automatically load data for the first device
         if (firstDeviceId && elements.deviceFilter) {
             elements.deviceFilter.value = firstDeviceId;
             loadHistoryData(userId);
@@ -167,7 +183,6 @@ async function loadDeviceOptions(userId) {
     }
 }
 
-// --- Initialize Map ---
 function initMap() {
     if (!elements.mapContainer) return;
 
@@ -175,25 +190,35 @@ function initMap() {
     const styles = (currentTheme === 'dark') ? mapStyles.dark : mapStyles.light;
 
     map = new google.maps.Map(elements.mapContainer, {
-        center: { lat: 2.9436, lng: 101.7949 }, // Default: GMI, Kajang
+        center: { lat: 2.9436, lng: 101.7949 }, 
         zoom: 13,
         disableDefaultUI: true,
         zoomControl: true,
         styles: styles,
         mapTypeId: 'roadmap'
     });
+
+    // Initialize Directions Service for "Snap to Road" style routing
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: true, // We use our own custom markers
+        preserveViewport: false, // Allow map to fit to route
+        polylineOptions: {
+            strokeColor: "#4361ee",
+            strokeWeight: 5,
+            strokeOpacity: 0.8
+        }
+    });
 }
 
-// --- Load History Data ---
 async function loadHistoryData(userId) {
     const deviceId = elements.deviceFilter.value;
     const dateString = elements.dateFilter.value; 
 
     if (!deviceId || !dateString) return;
 
-    // --- FIX: Update Header Text ---
     if (elements.historyTitleHeader) {
-        // Get today's date in YYYY-MM-DD format (local time)
         const today = new Date();
         const localToday = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
             .toISOString()
@@ -202,13 +227,12 @@ async function loadHistoryData(userId) {
         if (dateString === localToday) {
             elements.historyTitleHeader.textContent = "History for Today";
         } else {
-            // Format readable date (e.g., "Nov 19, 2025")
             const dateObj = new Date(dateString);
             const readableDate = dateObj.toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'short', 
                 day: 'numeric',
-                timeZone: 'UTC' // Important: Treat the input date as UTC to avoid day shifting
+                timeZone: 'UTC' 
             });
             elements.historyTitleHeader.textContent = `History of ${readableDate}`;
         }
@@ -220,25 +244,20 @@ async function loadHistoryData(userId) {
 
         if (!docSnap.exists()) {
             console.log("No history document found.");
-            updateStats(0, 0, "0h 0m"); // Reset stats
+            updateStats(0, 0, "0h 0m");
             renderMapMarkers([], deviceId); 
             renderTimeline([]);
             return;
         }
 
         const data = docSnap.data();
-        // Support multiple field names for compatibility
         const historyPoints = data.route || data.points || data.locations || data.history || [];
 
         console.log(`Found ${historyPoints.length} history points.`);
         
-        // 1. Calculate Distance
         const distance = calculateTotalDistance(historyPoints);
-        
-        // 2. Calculate Duration
         const duration = calculateDuration(historyPoints);
         
-        // 3. Update UI
         updateStats(historyPoints.length, distance, duration);
         renderMapMarkers(historyPoints, deviceId);
         renderTimeline(historyPoints);
@@ -249,7 +268,6 @@ async function loadHistoryData(userId) {
     }
 }
 
-// --- Update Stats UI ---
 function updateStats(points, distance, duration) {
     if(elements.statTotalPoints) elements.statTotalPoints.textContent = points;
     if(elements.statTotalDistance) elements.statTotalDistance.textContent = `${distance.toFixed(2)} km`;
@@ -259,7 +277,7 @@ function updateStats(points, distance, duration) {
     }
 }
 
-// --- Render Map Logic ---
+// --- ENHANCED MAP RENDERING (Snap to Roads Logic) ---
 function renderMapMarkers(data, currentDeviceId) {
     if (!map) return;
 
@@ -268,32 +286,25 @@ function renderMapMarkers(data, currentDeviceId) {
         pathPolyline.setMap(null);
         pathPolyline = null;
     }
+    if (directionsRenderer) {
+        directionsRenderer.setDirections({ routes: [] });
+    }
     markers.forEach(m => m.setMap(null));
     markers = [];
 
-    // 2. Get Device Info
     const device = deviceCache[currentDeviceId];
     if (!device) return;
 
-    // --- CASE A: No History -> Show Current Device Location ---
+    // --- CASE A: No History -> Show Current Location ---
     if (!data || data.length === 0) {
         if (device.location) {
-            // Robust coordinate parsing
-            let lat = device.location.lat;
-            let lng = device.location.lng;
-            if (lat === undefined) lat = device.location.latitude;
-            if (lng === undefined) lng = device.location.longitude;
-            
-            lat = parseFloat(lat);
-            lng = parseFloat(lng);
-
-            if (!isNaN(lat) && !isNaN(lng)) {
-                const position = { lat, lng };
+            const pos = parseLatLng(device.location);
+            if (pos) {
                 const marker = new google.maps.Marker({
-                    position: position,
+                    position: pos,
                     map: map,
                     title: "Current Location",
-                    // Default Google Maps red pin for current location
+                    animation: google.maps.Animation.DROP
                 });
                 
                 const infoWindow = new google.maps.InfoWindow({
@@ -301,8 +312,7 @@ function renderMapMarkers(data, currentDeviceId) {
                 });
                 
                 marker.addListener('click', () => infoWindow.open(map, marker));
-                
-                map.setCenter(position);
+                map.setCenter(pos);
                 map.setZoom(15);
                 markers.push(marker);
             }
@@ -310,214 +320,262 @@ function renderMapMarkers(data, currentDeviceId) {
         return;
     }
 
-    // --- CASE B: History Exists -> Draw Path ---
-    const pathCoordinates = [];
+    // --- CASE B: History Exists ---
     const bounds = new google.maps.LatLngBounds();
     
-    data.forEach((loc, index) => {
-        // Robust parsing for history points
-        let lat = loc.lat;
-        let lng = loc.lng;
-        if (lat === undefined) lat = loc.latitude;
-        if (lng === undefined) lng = loc.longitude;
-        
-        lat = parseFloat(lat);
-        lng = parseFloat(lng);
+    // 1. Filter valid points
+    // We filter out points that are too close to each other (jitter) to smooth the path
+    const validPoints = [];
+    let lastPt = null;
+    
+    data.forEach(pt => {
+        const latLng = parseLatLng(pt);
+        if (!latLng) return;
 
-        if (isNaN(lat) || isNaN(lng)) return; // Skip bad points
-
-        const position = { lat, lng };
-        pathCoordinates.push(position);
-        bounds.extend(position);
-
-        // Add markers only for Start and End to avoid clutter
-        const isStart = index === 0;
-        const isEnd = index === data.length - 1;
-
-        if (isStart || isEnd) {
-            let icon = null;
-            let title = "";
-
-            if (isEnd) {
-                // Latest Point (End) - Use Custom Animated Icon
-                title = "End Point (Latest)";
-                
-                // Colors
-                const colorMap = { online: "#10b981", found: "#10b981", offline: "#ef4444", lost: "#ef4444", warning: "#f59e0b" };
-                const pinColor = colorMap[device.status] || "#64748b";
-
-                const svgIcon = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 80 80">
-                        ${ (device.status !== 'offline') ? `
-                        <circle cx="40" cy="40" r="18" fill="#4361ee" stroke="#4361ee" stroke-width="2" opacity="0.6">
-                            <animate attributeName="r" from="18" to="40" dur="1.5s" repeatCount="indefinite" />
-                            <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" repeatCount="indefinite" />
-                        </circle>
-                        ` : '' }
-                        <circle cx="40" cy="40" r="18" fill="${pinColor}" stroke="white" stroke-width="3" />
-                        <g transform="translate(28, 28)">
-                            <path fill="white" d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
-                        </g>
-                    </svg>`;
-                
-                icon = {
-                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon),
-                    scaledSize: new google.maps.Size(48, 48),
-                    anchor: new google.maps.Point(24, 24)
-                };
-                
-            } else {
-                // Start Point - Green Dot
-                title = "Start Point";
-                icon = {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 5,
-                    fillColor: "#10b981", // Green
-                    fillOpacity: 1,
-                    strokeWeight: 1,
-                    strokeColor: "white",
-                };
+        if (!lastPt) {
+            validPoints.push(latLng);
+            lastPt = latLng;
+        } else {
+            // Only add if distance > 10 meters from last point
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(lastPt, latLng);
+            if (dist > 10) {
+                validPoints.push(latLng);
+                lastPt = latLng;
             }
-
-            const marker = new google.maps.Marker({
-                position: position,
-                map: map,
-                icon: icon,
-                title: title,
-                zIndex: isEnd ? 1000 : 100,
-                optimized: false
-            });
-            
-            // Format Time
-            let timeStr = 'N/A';
-            if (loc.timestamp && typeof loc.timestamp.toDate === 'function') {
-                timeStr = loc.timestamp.toDate().toLocaleTimeString();
-            } else if (loc.time && typeof loc.time.toDate === 'function') {
-                timeStr = loc.time.toDate().toLocaleTimeString();
-            } else if (typeof loc.time === 'string') {
-                const d = new Date(loc.time);
-                timeStr = !isNaN(d) ? d.toLocaleTimeString() : loc.time;
-            }
-
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
-                    <div style="text-align:center; color:black">
-                        <div style="font-weight:bold; color:#4361ee">${isEnd ? "End" : "Start"} Point</div>
-                        <div style="font-size:12px; color:#666">${timeStr}</div>
-                    </div>
-                `
-            });
-            
-            marker.addListener('click', () => infoWindow.open(map, marker));
-            markers.push(marker);
         }
+        bounds.extend(latLng);
     });
 
-    // Draw the blue line connecting points
-    if (pathCoordinates.length > 0) {
-        pathPolyline = new google.maps.Polyline({
-            path: pathCoordinates,
-            geodesic: true,
-            strokeColor: "#4361ee",
-            strokeOpacity: 1.0,
-            strokeWeight: 4
-        });
-        pathPolyline.setMap(map);
-        
-        // Zoom map to fit the path
-        map.fitBounds(bounds);
+    // 2. Draw Route using Directions API (Snap to Road)
+    if (validPoints.length > 1) {
+        drawRouteWithDirections(validPoints);
+    } else if (validPoints.length === 1) {
+        map.setCenter(validPoints[0]);
+        map.setZoom(16);
     }
+
+    // 3. Add Start/End Markers
+    if (data.length > 0) {
+        // Use raw data for markers to be exact with start/end times
+        const startLoc = data[0];
+        const endLoc = data[data.length - 1];
+        addEndpointMarker(startLoc, "Start Point", false, device);
+        addEndpointMarker(endLoc, "End Point (Latest)", true, device);
+    }
+
+    map.fitBounds(bounds);
 }
 
-// Helper: Calculate distance between points in km
-function calculateTotalDistance(points) {
-    if (!points || points.length < 2) return 0;
-    let totalDist = 0;
-    
-    // Only works if google maps geometry library is loaded
-    if (typeof google !== 'undefined' && google.maps.geometry) {
-        for (let i = 0; i < points.length - 1; i++) {
-            const p1 = points[i];
-            const p2 = points[i+1];
-            
-            const lat1 = p1.lat || p1.latitude;
-            const lng1 = p1.lng || p1.longitude;
-            const lat2 = p2.lat || p2.latitude;
-            const lng2 = p2.lng || p2.longitude;
-            
-            const point1 = new google.maps.LatLng(lat1, lng1);
-            const point2 = new google.maps.LatLng(lat2, lng2);
-            
-            totalDist += google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
-        }
-    }
-    
-    return totalDist / 1000; // Convert meters to km
-}
-
-// --- Render Timeline ---
-function renderTimeline(data) {
-    const container = elements.timelineList;
-    const emptyState = elements.timelineEmpty;
-
-    if (!container) return;
-
-    container.innerHTML = ''; // Clear "No location history" message
-
-    if (!data || data.length === 0) {
-        // FIX 1: Show the overlay if data is empty
-        if (emptyState) {
-            emptyState.style.display = 'flex';
-            emptyState.classList.remove('hidden');
-        }
+/**
+ * Uses Google Directions API to draw a path snapped to roads.
+ * Handles the 23-waypoint limit by sampling points.
+ */
+function drawRouteWithDirections(points) {
+    if (!directionsService || !directionsRenderer) {
+        drawSimplePolyline(points);
         return;
     }
 
-    if (emptyState) {
-        emptyState.style.display = 'none';
-        emptyState.classList.add('hidden');
+    const origin = points[0];
+    const destination = points[points.length - 1];
+    const waypoints = [];
+
+    // Logic: Google Directions API allows max 25 waypoints (Origin + Dest + 23 intermediate)
+    // We select up to 23 evenly distributed points from the middle of the array
+    if (points.length > 2) {
+        const maxIntermediate = 23;
+        // Calculate step size to distribute points evenly
+        const step = Math.max(1, Math.floor((points.length - 2) / maxIntermediate));
+        
+        for (let i = 1; i < points.length - 1; i += step) {
+            if (waypoints.length < maxIntermediate) {
+                waypoints.push({ location: points[i], stopover: false });
+            }
+        }
+    }
+
+    directionsService.route({
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        travelMode: google.maps.TravelMode.DRIVING, // Snaps to roads
+        optimizeWaypoints: false // Keep chronological order
+    }, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
+        } else {
+            // Fallback if routing fails (e.g. quota exceeded, no road found)
+            console.warn("Directions routing failed (" + status + "). Falling back to straight lines.");
+            drawSimplePolyline(points);
+        }
+    });
+}
+
+function drawSimplePolyline(coordinates) {
+    if (pathPolyline) pathPolyline.setMap(null);
+    pathPolyline = new google.maps.Polyline({
+        path: coordinates,
+        geodesic: true,
+        strokeColor: "#4361ee",
+        strokeOpacity: 0.8,
+        strokeWeight: 4
+    });
+    pathPolyline.setMap(map);
+}
+
+function addEndpointMarker(loc, title, isEnd, device) {
+    const position = parseLatLng(loc);
+    if (!position) return;
+
+    let icon = null;
+
+    if (isEnd) {
+        // Custom Static Icon for End Point
+        const colorMap = { online: "#10b981", found: "#10b981", offline: "#ef4444", lost: "#ef4444", warning: "#f59e0b" };
+        const pinColor = colorMap[device.status] || "#64748b";
+
+        const svgIcon = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="18" fill="${pinColor}" stroke="white" stroke-width="3" />
+                <g transform="translate(28, 28)">
+                    <path fill="white" d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                </g>
+            </svg>`;
+        
+        icon = {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon),
+            scaledSize: new google.maps.Size(48, 48),
+            anchor: new google.maps.Point(24, 24)
+        };
+    } else {
+        // Start Point - Small Green Dot
+        icon = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 6,
+            fillColor: "#10b981",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "white",
+        };
+    }
+
+    const marker = new google.maps.Marker({
+        position: position,
+        map: map,
+        icon: icon,
+        title: title,
+        zIndex: isEnd ? 1000 : 100,
+    });
+
+    // Info Window
+    let timeStr = 'N/A';
+    if (loc.timestamp && typeof loc.timestamp.toDate === 'function') {
+        timeStr = loc.timestamp.toDate().toLocaleTimeString();
+    } else if (typeof loc.time === 'string') {
+        const d = new Date(loc.time);
+        timeStr = !isNaN(d) ? d.toLocaleTimeString() : loc.time;
+    }
+
+    const infoWindow = new google.maps.InfoWindow({
+        content: `
+            <div style="text-align:center; color:black">
+                <div style="font-weight:bold; color:#4361ee">${title}</div>
+                <div style="font-size:12px; color:#666">${timeStr}</div>
+            </div>
+        `
+    });
+    
+    marker.addListener('click', () => infoWindow.open(map, marker));
+    markers.push(marker);
+}
+
+function parseLatLng(loc) {
+    if (!loc) return null;
+    let lat = loc.lat ?? loc.latitude;
+    let lng = loc.lng ?? loc.longitude;
+    lat = parseFloat(lat);
+    lng = parseFloat(lng);
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return new google.maps.LatLng(lat, lng);
+}
+
+function calculateTotalDistance(points) {
+    if (!points || points.length < 2) return 0;
+    let totalDist = 0;
+    if (typeof google !== 'undefined' && google.maps.geometry) {
+        for (let i = 0; i < points.length - 1; i++) {
+            const p1 = parseLatLng(points[i]);
+            const p2 = parseLatLng(points[i+1]);
+            if (p1 && p2) {
+                totalDist += google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
+            }
+        }
+    }
+    return totalDist / 1000; // km
+}
+
+function calculateDuration(points) {
+    if (!points || points.length < 2) return "0h 0m";
+    const startPoint = points[0];
+    const endPoint = points[points.length - 1];
+    const startDate = parseDateHelper(startPoint);
+    const endDate = parseDateHelper(endPoint);
+
+    if (!startDate || !endDate) return "N/A";
+    const diffMs = Math.abs(endDate - startDate);
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
+}
+
+function parseDateHelper(point) {
+    if (!point) return null;
+    if (point.timestamp && typeof point.timestamp.toDate === 'function') return point.timestamp.toDate();
+    if (point.time && typeof point.time.toDate === 'function') return point.time.toDate();
+    if (typeof point.time === 'string') {
+        let cleanerString = point.time.replace('at', '').replace('UTC+8', '').trim();
+        const d = new Date(cleanerString);
+        if (!isNaN(d)) return d;
+    }
+    return null;
+}
+
+function renderTimeline(data) {
+    const container = elements.timelineList;
+    if (!container) return;
+    container.innerHTML = ''; 
+
+    if (!data || data.length === 0) {
+        if (elements.timelineEmpty) {
+            elements.timelineEmpty.style.display = 'flex';
+            elements.timelineEmpty.classList.remove('hidden');
+        }
+        return;
+    }
+    if (elements.timelineEmpty) {
+        elements.timelineEmpty.style.display = 'none';
+        elements.timelineEmpty.classList.add('hidden');
     }
     
-    // Create a wrapper for the list
     const listWrapper = document.createElement('div');
-    listWrapper.className = "p-4 space-y-0"; // Tailwind classes
+    listWrapper.className = "p-4 space-y-0"; 
 
-    // We reverse the data to show the LATEST time at the top
+    // Reverse data to show latest first
     const reversedData = [...data].reverse();
 
     reversedData.forEach((point, index) => {
-        // Calculate Point Number
         const pointNumber = data.length - index;
-
-        // 2. Calculate Original Index
-        const originalIndex = (data.length - 1) - index;
-
-        // Parse Time
+        const lat = parseFloat(point.lat || point.latitude);
+        const lng = parseFloat(point.lng || point.longitude);
+        
         let timeDisplay = 'N/A';
-        if (point.time && typeof point.time.toDate === 'function') {
-            timeDisplay = point.time.toDate().toLocaleTimeString();
-        } else if (typeof point.time === 'string') {
-            if (point.time.includes('at')) {
-                const parts = point.time.split('at');
-                if (parts.length > 1) {
-                    timeDisplay = parts[1].replace('UTC+8', '').trim();
-                } else {
-                    timeDisplay = point.time;
-                }
-            } else {
-                timeDisplay = point.time;
-            }
-        } else if (point.timestamp && typeof point.timestamp.toDate === 'function') {
-            timeDisplay = point.timestamp.toDate().toLocaleTimeString();
-        }
+        const dateObj = parseDateHelper(point);
+        if (dateObj) timeDisplay = dateObj.toLocaleTimeString();
 
         const item = document.createElement('div');
-        // Styling for timeline item
         item.className = "flex gap-4 pb-4 relative";
-        
-        // Vertical line logic
-        const isLast = index === reversedData.length - 1;
-        const lineClass = isLast ? "" : "h-full";
+        const lineClass = index === reversedData.length - 1 ? "" : "h-full";
         
         item.innerHTML = `
             <div class="flex flex-col items-center relative">
@@ -526,95 +584,33 @@ function renderTimeline(data) {
                 </div>
                 <div class="w-0.5 bg-gray-200 dark:bg-gray-700 absolute top-3 ${lineClass}" style="height: calc(100% + 1rem);"></div>
             </div>
-            
             <div class="flex-1 pb-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
                 <div class="flex justify-between items-center">
-                    <p class="text-sm font-semibold text-gray-800 dark:text-white">
-                        ${timeDisplay}
-                    </p>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-white">${timeDisplay}</p>
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">
-                    ${parseFloat(point.lat || point.latitude).toFixed(5)}, ${parseFloat(point.lng || point.longitude).toFixed(5)}
+                    ${lat.toFixed(5)}, ${lng.toFixed(5)}
                 </p>
                 <button class="text-xs text-primary-600 mt-1 hover:underline" 
-                    onclick="window.focusMapOnPoint(${parseFloat(point.lat || point.latitude)}, ${parseFloat(point.lng || point.longitude)})">
+                    onclick="window.focusMapOnPoint(${lat}, ${lng})">
                     View on Map
                 </button>
             </div>
         `;
         listWrapper.appendChild(item);
     });
-
     container.appendChild(listWrapper);
 }
 
-// --- Duration Calculation Helper ---
-function calculateDuration(points) {
-    if (!points || points.length < 2) return "0h 0m";
-
-    // Get Start and End times
-    // Assuming points are ordered chronologically (Oldest -> Newest)
-    const startPoint = points[0];
-    const endPoint = points[points.length - 1];
-
-    const startDate = parseDateHelper(startPoint);
-    const endDate = parseDateHelper(endPoint);
-
-    if (!startDate || !endDate) return "N/A";
-
-    // Calculate difference in milliseconds
-    const diffMs = Math.abs(endDate - startDate);
-    
-    // Convert to hours and minutes
-    const totalMinutes = Math.floor(diffMs / (1000 * 60));
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-    } else {
-        return `${minutes}m`;
-    }
-}
-
-// Helper to robustly parse your date strings or timestamps
-function parseDateHelper(point) {
-    if (!point) return null;
-
-    // 1. Firestore Timestamp object
-    if (point.timestamp && typeof point.timestamp.toDate === 'function') {
-        return point.timestamp.toDate();
-    }
-    // 2. Also check 'time' property if it's a Timestamp
-    if (point.time && typeof point.time.toDate === 'function') {
-        return point.time.toDate();
-    }
-
-    // 3. String Format "November 20, 2025 at 12:03:28 AM UTC+8"
-    if (typeof point.time === 'string') {
-        // Remove 'at ' and 'UTC+8' to make it standard for JavaScript
-        // JS Date() handles "November 20, 2025 12:03:28 AM" very well
-        let cleanerString = point.time.replace('at', '').replace('UTC+8', '').trim();
-        const d = new Date(cleanerString);
-        if (!isNaN(d)) return d;
-    }
-
-    return null;
-}
-
-// Helper: Focus map on a specific point
 window.focusMapOnPoint = (lat, lng) => {
     if (map && !isNaN(lat) && !isNaN(lng)) {
         const pos = { lat, lng };
         map.panTo(pos);
         map.setZoom(18);
-        
-        // Optional: Add a temporary bouncing marker
-        const tempMarker = new google.maps.Marker({
+        new google.maps.Marker({
             position: pos,
             map: map,
             animation: google.maps.Animation.DROP
         });
-        setTimeout(() => tempMarker.setMap(null), 3000);
     }
 };

@@ -142,16 +142,60 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Toast Notification Styles */
+        /* FIXED: Toast Notification Styles 
+           Added explicit background color, text color, and borders so text is readable.
+        */
         .toast {
             opacity: 0;
             transform: translateX(100%);
             transition: all 0.4s ease-in-out;
+            
+            /* Visual Styles */
+            background-color: white;
+            color: #1e293b; /* slate-800 */
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            border-left-width: 4px;
+            min-width: 300px;
+            max-width: 90vw;
         }
+        
+        /* Dark Mode Toast */
+        html.dark .toast {
+            background-color: #1e293b; /* slate-800 */
+            color: white;
+            border-color: #334155; /* slate-700 */
+        }
+
         .toast.show {
             opacity: 1;
             transform: translateX(0);
         }
+
+        /* Toast Types Colors */
+        .toast-info { border-left-color: #3b82f6; }    /* Blue */
+        .toast-success { border-left-color: #10b981; } /* Green */
+        .toast-error { border-left-color: #ef4444; }   /* Red */
+        .toast-warning { border-left-color: #f59e0b; } /* Orange */
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: white;
+            border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            width: 90%; max-width: 400px; padding: 1.5rem;
+            transform: scale(0.95); opacity: 0; transition: all 0.3s ease;
+        }
+        .dark .modal-content { background-color: #1e293b; }
+        .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900">
@@ -162,6 +206,26 @@
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed top-6 right-6 z-[9999] flex flex-col gap-3">
         <!-- Toasts will be injected here by auth.js -->
+    </div>
+
+    <!-- NEW: OTP Verification Modal -->
+    <div id="otpModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">Verification Required</h3>
+                <button id="otpModalClose" class="text-2xl text-slate-500 hover:text-red-500">&times;</button>
+            </div>
+            <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">
+                We've sent a verification code to your phone. Please enter it below to login.
+            </p>
+            <div class="mb-6">
+                <input type="text" id="otpInput" class="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="000000" maxlength="6" inputmode="numeric">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button id="otpModalCancel" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition">Cancel</button>
+                <button id="otpModalVerify" class="px-4 py-2 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">Verify</button>
+            </div>
+        </div>
     </div>
 
     <!-- Login Container -->

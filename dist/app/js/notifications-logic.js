@@ -189,6 +189,16 @@ function getNotificationIcon(type) {
         case 'low-battery': return 'bi-battery-half';
         case 'lost-mode': return 'bi-exclamation-diamond-fill';
         case 'success': return 'bi-check-circle-fill';
+        
+        // --- NEW ICONS ---
+        case 'sim-alert': return 'bi-sd-card-fill'; // Using SD Card/SIM style icon
+        case 'tracking-start': return 'bi-play-circle-fill';
+        case 'tracking-stop': return 'bi-stop-circle-fill';
+        
+        // --- FINDER MESSAGES/PHOTOS ---
+        case 'message-received': return 'bi-chat-left-text-fill';
+        case 'photo-received': return 'bi-camera-fill';
+
         default: return 'bi-bell-fill';
     }
 }
@@ -197,15 +207,26 @@ function getNotificationColor(type) {
     switch (type) {
         case 'security':
         case 'lost-mode':
+        case 'sim-alert': // High alert
             return 'var(--color-danger)';
+        
+        case 'tracking-stop':
+            return 'var(--color-warning)'; // Warning for stopping
+        
         case 'geofence-enter':
         case 'geofence-exit':
         case 'info':
             return 'var(--color-info)';
+        
         case 'low-battery':
             return 'var(--color-warning)';
+        
         case 'success':
+        case 'tracking-start': // Success for starting
+        case 'message-received': // Using Primary/Success for positive received actions
+        case 'photo-received':
             return 'var(--color-success)';
+        
         default:
             return 'var(--color-primary)';
     }

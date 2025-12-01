@@ -17,9 +17,11 @@ import {
     onSnapshot,
     query,
     setDoc,
+    addDoc, // Required for creating new notifications
     serverTimestamp,
     orderBy,
     limit,
+    where,
     SECURITY_BUTTONS,
     sanitizeHTML
 } from '/app/js/app-shell.js';
@@ -72,12 +74,16 @@ class DashboardManager {
                 online: document.getElementById('onlineDevices'),
                 warning: document.getElementById('warningDevices'),
                 offline: document.getElementById('offlineDevices'),
+                lost: document.getElementById('lostDevices'), 
             },
             devicesList: document.getElementById('devicesList'),
             notificationsList: document.getElementById('notificationsList'),
             map: document.getElementById('map'),
             filterButtons: document.querySelectorAll('.filter-btn'),
             searchInput: document.getElementById('searchInput'),
+            
+            // Notification Badge
+            notificationBadge: document.getElementById('notificationBadge'),
             
             // Action Buttons Container
             actionsContainer: document.getElementById('dashboard-actions-container'),
@@ -122,7 +128,9 @@ class DashboardManager {
             map: null,
             markers: {}, // Map of deviceId -> google.maps.Marker
             markerCluster: null,
-            charts: {}, 
+            charts: {},
+
+            lastCounts: { online: -1, warning: -1, offline: -1, lost: -1 }
         };
     }
 
@@ -141,7 +149,7 @@ class DashboardManager {
                 ring: document.getElementById('action-ring'),
                 viewPhotos: document.getElementById('action-view-photos'),
                 viewMessages: document.getElementById('action-view-messages'),
-                lost: document.getElementById('action-lost')
+                lost: document.getElementById('action-lost'),
             };
         }
 
@@ -149,6 +157,7 @@ class DashboardManager {
         this.initMap();
         this.listenForDevices();
         this.listenForNotifications();
+        this.listenForUnreadNotifications(); // NEW: For Badge Count
     }
 
     setupEventListeners() {
@@ -167,6 +176,7 @@ class DashboardManager {
         if(this.elements.actions.ring) {
             this.elements.actions.ring.addEventListener('click', () => this.onSecurityAction('ring'));
         }
+    
         if(this.elements.actions.lost) {
             this.elements.actions.lost.addEventListener('click', () => {
                 const currentStatus = this.state.allDevices.find(d => d.id === this.state.currentDeviceId)?.status;
@@ -331,15 +341,29 @@ class DashboardManager {
 
     listenForDevices() {
         const devicesRef = collection(fbDB, 'user_data', this.userId, 'devices');
-        const q = query(devicesRef, orderBy('lastSeen', 'desc'));
+        const q = query(devicesRef, orderBy('name', 'asc'));
         
         onSnapshot(q, (snapshot) => {
             this.state.allDevices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
             this.updateStats();
             this.applyFilters();
+            
+            // BUG FIX: Re-evaluate button states if a device is currently selected.
+            // This ensures that if 'status' changes in DB, the buttons update instantly.
+            if (this.state.currentDeviceId) {
+                const currentDevice = this.state.allDevices.find(d => d.id === this.state.currentDeviceId);
+                if (currentDevice) {
+                    this.updateActionButtons(currentDevice);
+                } else {
+                    // Device might have been deleted remotely
+                    this.selectDevice(null); 
+                }
+            }
         });
     }
 
+    // Logic to render the *list* of notifications (only last 5)
     listenForNotifications() {
         const notifsRef = collection(fbDB, 'user_data', this.userId, 'notifications');
         
@@ -352,18 +376,78 @@ class DashboardManager {
         });
     }
 
+    // NEW: Logic to calculate *all* unread notifications for the badge
+    listenForUnreadNotifications() {
+        const notifsRef = collection(fbDB, 'user_data', this.userId, 'notifications');
+        
+        // Query specifically for unread items to get an accurate count
+        const q = query(notifsRef, where("read", "==", false));
+
+        onSnapshot(q, (snapshot) => {
+            this.updateBadgeCount(snapshot.size);
+        }, (error) => {
+            console.error("Error listening for unread count:", error);
+        });
+    }
+
+    updateBadgeCount(count) {
+        const badge = this.elements.notificationBadge;
+        if (!badge) return;
+
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+            badge.classList.add('animate-pulse');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('animate-pulse');
+        }
+    }
+
+    // --- UPDATED STATS LOGIC ---
     updateStats() {
         const total = this.state.allDevices.length;
-        const online = this.state.allDevices.filter(d => d.status === 'online').length;
-        const warning = this.state.allDevices.filter(d => d.status === 'warning').length;
-        const offline = this.state.allDevices.filter(d => d.status === 'offline' || d.status === 'lost').length;
         
+        // Strictly Online
+        const online = this.state.allDevices.filter(d => d.status === 'online').length;
+        
+        // Strictly Offline
+        const offline = this.state.allDevices.filter(d => d.status === 'offline').length;
+        
+        // Strictly Lost
+        const lost = this.state.allDevices.filter(d => d.status === 'lost').length;
+        
+        // Low Battery Logic: Count devices with battery < 20 OR status 'warning'
+        const warning = this.state.allDevices.filter(d => {
+            const battery = parseInt(d.battery || 0, 10);
+            return battery < 20 || d.status === 'warning';
+        }).length;
+        
+        // Update DOM
         this.animateValue(this.elements.statCards.total, total);
         this.animateValue(this.elements.statCards.online, online);
         this.animateValue(this.elements.statCards.warning, warning);
         this.animateValue(this.elements.statCards.offline, offline);
         
-        this.updateDashboardCharts({ online, warning, offline });
+        // Check if lost card exists before animating (safety check)
+        if(this.elements.statCards.lost) {
+            this.animateValue(this.elements.statCards.lost, lost);
+        }
+        
+        // Update Chart with new data breakdown
+        const prev = this.state.lastCounts;
+        const hasChanged = 
+            online !== prev.online ||
+            warning !== prev.warning ||
+            offline !== prev.offline ||
+            lost !== prev.lost;
+
+        if (hasChanged) {
+            // Update the memory
+            this.state.lastCounts = { online, warning, offline, lost };
+            // Update the visual chart
+            this.updateDashboardCharts({ online, warning, offline, lost });
+        }
     }
 
     updateDashboardCharts(counts) {
@@ -371,17 +455,23 @@ class DashboardManager {
 
         const styles = getComputedStyle(document.documentElement);
         const fontColor = styles.getPropertyValue('--color-text-secondary');
-        const colors = {
-            online: styles.getPropertyValue('--color-success'),
-            warning: styles.getPropertyValue('--color-warning'),
-            offline: styles.getPropertyValue('--color-text-secondary'),
-        };
+        
+        // Colors
+        const c_online = styles.getPropertyValue('--color-success');
+        const c_warning = styles.getPropertyValue('--color-warning');
+        const c_offline = '#64748b'; // Manual grey for offline
+        const c_lost = styles.getPropertyValue('--color-danger');
 
         const data = {
-            labels: [`Online (${counts.online})`, `Warning (${counts.warning})`, `Offline (${counts.offline})`],
+            labels: [
+                `Online (${counts.online})`, 
+                `Low Batt (${counts.warning})`, 
+                `Offline (${counts.offline})`,
+                `Lost (${counts.lost})`
+            ],
             datasets: [{
-                data: [counts.online, counts.warning, counts.offline],
-                backgroundColor: [colors.online, colors.warning, colors.offline],
+                data: [counts.online, counts.warning, counts.offline, counts.lost],
+                backgroundColor: [c_online, c_warning, c_offline, c_lost],
                 borderColor: styles.getPropertyValue('--color-bg-card'),
                 borderWidth: 4,
                 cutout: '75%',
@@ -398,7 +488,12 @@ class DashboardManager {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: fontColor, boxWidth: 12 } } }
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { color: fontColor, boxWidth: 12, padding: 20 } 
+                        } 
+                    }
                 }
             });
         }
@@ -467,7 +562,12 @@ class DashboardManager {
             }
         }
         
-        // Enable buttons
+        // Refactored: Call the UI update helper
+        this.updateActionButtons(device);
+    }
+
+    // Helper function to update button states based on device data
+    updateActionButtons(device) {
         const buttons = this.elements.actions;
         if (device) {
             if(buttons.ring) buttons.ring.disabled = false;
@@ -476,16 +576,16 @@ class DashboardManager {
             if(buttons.lost) buttons.lost.disabled = false;
             this.elements.actionsPrompt.classList.add('hidden');
             
-            // Update Lost button appearance
+            // Update Lost button appearance dynamically based on REAL data
             const lostBtn = buttons.lost;
             if (lostBtn) {
                 const icon = lostBtn.querySelector('i');
                 const text = lostBtn.querySelector('span');
                 if (device.status === 'lost') {
-                    icon.className = 'bi bi-check-circle text-green-500';
+                    icon.className = 'bi bi-check-circle-fill text-green-500';
                     text.textContent = 'Mark as Found';
                 } else {
-                    icon.className = 'bi bi-exclamation-diamond text-red-500';
+                    icon.className = 'bi bi-exclamation-diamond-fill text-red-500';
                     text.textContent = 'Mark as Lost';
                 }
             }
@@ -516,14 +616,52 @@ class DashboardManager {
         showModal(config.title, config.message, config.type, async () => {
             try {
                 const deviceRef = doc(fbDB, 'user_data', this.userId, 'devices', device.id);
+                
+                // 1. Perform Device Update
                 if (action === 'lost' || action === 'found') {
                     const newStatus = (action === 'lost') ? 'lost' : 'online';
                     await setDoc(deviceRef, { status: newStatus }, { merge: true });
                 } else {
                     await setDoc(deviceRef, { pending_action: action, action_timestamp: serverTimestamp() }, { merge: true });
                 }
+
+                // 2. Create Notification
+                // This fixes the "no notification" issue
+                const notifRef = collection(fbDB, 'user_data', this.userId, 'notifications');
+                
+                let notifTitle = "Security Action";
+                let notifMessage = `Command "${action}" sent to ${safeName}.`;
+                let notifType = "info";
+
+                // Customize notification based on action
+                if (action === 'ring') { 
+                    notifTitle = 'Alarm Triggered'; 
+                    notifType = 'warning'; 
+                } else if (action === 'lost') { 
+                    notifTitle = 'Device Marked Lost'; 
+                    notifType = 'lost-mode';
+                    notifMessage = `${safeName} is now in Lost Mode.`;
+                } else if (action === 'found') { 
+                    notifTitle = 'Device Found'; 
+                    notifType = 'success'; 
+                    notifMessage = `${safeName} marked as found.`;
+                } else if (action === 'wipe') { 
+                    notifTitle = 'Wipe Command Sent'; 
+                    notifType = 'security'; 
+                    notifMessage = `Remote wipe initiated for ${safeName}.`;
+                }
+
+                await addDoc(notifRef, {
+                    title: notifTitle,
+                    message: notifMessage,
+                    type: notifType,
+                    read: false,
+                    timestamp: serverTimestamp()
+                });
+
                 showToast('Action Sent', `Command sent to ${safeName}.`, 'success');
             } catch (error) {
+                console.error("Error executing security action:", error);
                 showToast('Error', 'Could not send command.', 'error');
             }
         }, null, { isHTML: true });
@@ -561,15 +699,12 @@ class DashboardManager {
             const colorMap = {
                 online: "#10b981", // Green
                 found: "#10b981",
-                offline: "#ef4444", // Red
+                offline: "#64748b", // Gray
                 lost: "#ef4444",
                 warning: "#f59e0b" // Yellow
             };
             const pinColor = colorMap[device.status] || "#64748b";
 
-            // --- 2. CREATE ANIMATED SVG ICON ---
-            // We use a larger viewBox (80x80) to allow space for the ripple wave
-            // The main pin stays in the center at (40,40)
             // --- 2. CREATE ANIMATED SVG ICON (High Visibility) ---
             const svgIcon = `
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 80 80">
@@ -607,6 +742,10 @@ class DashboardManager {
             });
 
             // InfoWindow Content
+            const lastSeenDate = device.lastSeen && typeof device.lastSeen.toDate === 'function' ? device.lastSeen.toDate() : null;
+            const lastSeen = lastSeenDate ? formatTimeAgo(lastSeenDate) : 'Never';
+            const battery = device.battery || 0;
+
             const infoWindow = new google.maps.InfoWindow({
                 content: `
                     <div style="color: black; padding: 5px;">

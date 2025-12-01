@@ -383,21 +383,18 @@
 
     </style>
 </head>
-<body class="h-full flex bg-bg-primary dark:bg-dark-bg-primary text-text-primary dark:text-dark-text-primary font-sans">
+<body class="h-full flex flex-col bg-bg-primary dark:bg-dark-bg-primary font-sans text-text-primary dark:text-dark-text-primary overflow-hidden">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 p-3 bg-primary-600 text-white">Skip to main content</a>
 
-    <!-- 
-      CRITICAL BUG FIX: 
-      The ID has been changed from "preloader" to "app-preloader"
-      to match what app-shell.js is looking for.
-    -->
-    <div id="app-preloader" class="preloader">
+    <!-- Full Page Preloader -->
+    <div id="app-preloader" class="bg-bg-card dark:bg-dark-bg-primary">
         <div class="spinner"></div>
     </div>
-    
-    <!-- Toast Container (from app-shell.js) -->
+
+    <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
     
-    <!-- Confirmation Modal (from app-shell.js) -->
+    <!-- Confirmation Modal -->
     <div id="confirmationModal" class="modal-overlay">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-4">
@@ -418,12 +415,13 @@
         <!-- Sidebar Header -->
         <div class="sidebar-header flex-shrink-0 flex items-center justify-between h-[var(--header-height)] px-6">
             <!-- INTEGRATION FIX: Root-relative path -->
-            <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary no-underline overflow-hidden whitespace-nowrap">
-                <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary p-2 rounded-lg"></i>
+            <!-- LOGO CHANGE: Replaced <i> tag with <img> to use image_2c91b8.png for branding -->
+            <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
+                <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                 <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
             </a>
             <!-- ACCESSIBILITY FIX: Added aria-label -->
-            <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all text-xl">
+            <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
                 <i class="bi bi-chevron-bar-left"></i>
             </button>
         </div>
@@ -433,7 +431,7 @@
             <ul class="flex flex-col gap-1">
                 <!-- INTEGRATION FIX: Root-relative paths -->
                 <li>
-                    <a href="/dashboard" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                    <a href="/dashboard" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                         <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
                         <span class="nav-link-text">Dashboard</span>
                     </a>
@@ -441,49 +439,49 @@
                 <li>
                     <!-- This is the active page -->
                     <a href="/devices" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary bg-primary-light dark:bg-dark-bg-card dark:text-primary-400 font-medium no-underline">
-                        <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
-                        <span class="nav-link-text">Devices</span>
+                        <i class="bi bi-phone nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-phone -->
+                        <span class="nav-link-text">My Devices</span>
                         <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs">...</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/map-view" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                    <a href="/map-view" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                         <i class="bi bi-map nav-link-icon text-lg w-8"></i>
-                        <span class="nav-link-text">Map View</span>
+                        <span class="nav-link-text">Full Map</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                        <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                    <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                        <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i> <!-- FIXED ICON: bi-geo-alt-fill -->
                         <span class="nav-link-text">Geofencing</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/security-actions" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                    <a href="/security-actions" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                         <i class="bi bi-shield-lock nav-link-icon text-lg w-8"></i>
                         <span class="nav-link-text">Security</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/location-history" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                    <a href="/location-history" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                         <i class="bi bi-clock-history nav-link-icon text-lg w-8"></i>
                         <span class="nav-link-text">History</span>
                     </a>
                 </li>
                  <li>
-                    <a href="/backup" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                    <a href="/backup" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                         <i class="bi bi-database-down nav-link-icon text-lg w-8"></i>
                         <span class="nav-link-text">Backup</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/settings" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                    <a href="/settings" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                         <i class="bi bi-gear nav-link-icon text-lg w-8"></i>
                         <span class="nav-link-text">Settings</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/support" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary hover:bg-primary-light dark:hover:bg-dark-bg-card">
+                    <a href="/support" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                         <i class="bi bi-question-circle nav-link-icon text-lg w-8"></i>
                         <span class="nav-link-text">Support</span>
                     </a>
@@ -538,7 +536,8 @@
                     <!-- INTEGRATION FIX: Root-relative path -->
                     <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary transition-all">
                         <i class="bi bi-bell"></i>
-                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                        <!-- FIX: Corrected bg-danger-500 to bg-danger -->
+                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
                     </a>
                 </div>
                 <div class="relative">

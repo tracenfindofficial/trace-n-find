@@ -1,9 +1,10 @@
 // --- Trace'N Find Authentication Logic ---
 // This single file powers login.html, register.html, and recovery.html.
 
-// MODIFICATION: Updated all Firebase imports from 9.22.1 to 12.6.0
-// Import all necessary Firebase SDK functions
+// FIX: Import initializeApp from firebase-app.js (Correct Source)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+
+// FIX: Import Auth functions from firebase-auth.js (Correct Source)
 import { 
     getAuth, 
     signInWithEmailAndPassword,
@@ -22,8 +23,9 @@ import {
     PhoneAuthProvider,
     PhoneMultiFactorGenerator,
     RecaptchaVerifier,
-    multiFactor // Added for MFA Enrollment
+    multiFactor 
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
 import { 
     getFirestore, 
     doc, 
@@ -53,7 +55,7 @@ const RECAPTCHA_SITE_KEY = '6LdnxQcsAAAAAOQl5jTa-VhC4aek_xTzDqSTp6zI';
 
 // --- Global State ---
 const state = {
-    isSubmitting: false, // CRITICAL FLAG for fixing redirect loop
+    isSubmitting: false,
     theme: 'light',
     passwordVisible: false,
     currentStep: 1,
@@ -69,14 +71,33 @@ const state = {
 const toastContainer = document.getElementById('toastContainer');
 const themeToggle = document.getElementById('theme-toggle');
 
+// Shared Modal Elements (Initialized on load)
+let sharedOtpModal = {
+    modal: null,
+    close: null,
+    cancel: null,
+    verify: null,
+    input: null
+};
+
 // --- Main Initializer ---
 document.addEventListener('DOMContentLoaded', () => {
     // Note: Theme is now set by the render-blocking script in <head>.
-    // This just attaches the toggle listener.
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
-    syncThemeToggleButton(); // Sync icon on load
+    syncThemeToggleButton(); 
+
+    // Initialize Shared OTP Modal Elements
+    sharedOtpModal.modal = document.getElementById('otpModal');
+    sharedOtpModal.close = document.getElementById('otpModalClose');
+    sharedOtpModal.cancel = document.getElementById('otpModalCancel');
+    sharedOtpModal.verify = document.getElementById('otpModalVerify');
+    sharedOtpModal.input = document.getElementById('otpInput');
+    
+    // Bind Close Events for Shared Modal
+    if (sharedOtpModal.close) sharedOtpModal.close.addEventListener('click', hideSharedOtpModal);
+    if (sharedOtpModal.cancel) sharedOtpModal.cancel.addEventListener('click', hideSharedOtpModal);
 
     // Check which page we're on and initialize its specific logic
     if (document.getElementById('loginForm')) {
@@ -95,7 +116,7 @@ const executeRecaptcha = (actionName) => {
     return new Promise((resolve) => {
         if (typeof grecaptcha === 'undefined' || typeof grecaptcha.enterprise === 'undefined') {
             console.warn('reCAPTCHA Enterprise not loaded. Skipping bot check.');
-            resolve(null); // Fail open so users aren't blocked if script fails
+            resolve(null); 
             return;
         }
         grecaptcha.enterprise.ready(async () => {
@@ -112,7 +133,46 @@ const executeRecaptcha = (actionName) => {
 };
 
 // ========================================================================
-// LOGIN PAGE LOGIC (`login.html`)
+// SHARED MODAL FUNCTIONS
+// ========================================================================
+
+function showSharedOtpModal(callback) {
+    if (!sharedOtpModal.modal) return;
+    
+    sharedOtpModal.input.value = '';
+    sharedOtpModal.modal.classList.add('active');
+    
+    const verifyHandler = () => {
+        const code = sharedOtpModal.input.value.trim();
+        if (code) {
+            callback(code);
+        } else {
+            showToast("Error", "Please enter the code.", "error");
+        }
+    };
+    
+    // One-time bind
+    sharedOtpModal.verify.onclick = verifyHandler;
+}
+
+function hideSharedOtpModal() {
+    if (sharedOtpModal.modal) {
+        sharedOtpModal.modal.classList.remove('active');
+    }
+    if (sharedOtpModal.verify) {
+        sharedOtpModal.verify.onclick = null;
+    }
+    state.isSubmitting = false;
+    
+    // Reset buttons if on login page
+    const loginBtn = document.getElementById('loginButton');
+    const googleBtn = document.getElementById('googleBtn');
+    if(loginBtn) setLoadingState(false, loginBtn);
+    if(googleBtn) setLoadingState(false, googleBtn);
+}
+
+// ========================================================================
+// LOGIN PAGE LOGIC
 // ========================================================================
 function initLoginPage() {
     const elements = {
@@ -122,10 +182,9 @@ function initLoginPage() {
         passwordToggle: document.getElementById('passwordToggle'),
         rememberMe: document.getElementById('rememberMe'),
         loginButton: document.getElementById('loginButton'),
-        googleBtn: document.getElementById('googleBtn'),
+        googleBtn: document.getElementById('googleBtn')
     };
 
-    // --- Event Listeners ---
     if (!elements.loginForm) return; 
     elements.loginForm.addEventListener('submit', handleLogin);
     elements.passwordToggle.addEventListener('click', () => togglePasswordVisibility(elements.passwordInput, elements.passwordToggle));
@@ -133,19 +192,14 @@ function initLoginPage() {
     
     elements.emailInput.addEventListener('input', debounce(() => validateLoginEmail(true), 300));
     elements.passwordInput.addEventListener('input', debounce(() => validateLoginPassword(true), 300));
-    
-    // --- Auth State Check ---
+
     onAuthStateChanged(fbAuth, (user) => {
-        // *** REDIRECT LOOP FIX ***
-        // Only redirect if a user is found AND we are not in the middle of a login submission.
         if (user && !state.isSubmitting) {
-            console.log("User already signed in, redirecting to dashboard.");
             localStorage.setItem('authToken', user.accessToken);
             window.location.replace('/app/dashboard.html'); 
         } else if (user && state.isSubmitting) {
              console.log("Auth state changed, but login is in progress. Waiting for success handler.");
         } else {
-            // User is null, show the login page.
             const savedEmail = localStorage.getItem('rememberedEmail');
             if (savedEmail) {
                 elements.emailInput.value = savedEmail;
@@ -154,28 +208,15 @@ function initLoginPage() {
         }
     });
     
-    // Check for URL parameters from registration or recovery
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('registered')) {
-        showToast('Account Created!', 'You can now sign in with your new account.', 'success');
-    }
-    if (params.has('recovered')) {
-        showToast('Password Reset!', 'Your password has been successfully reset. You can now log in.', 'success');
-    }
-
-    // --- Login Handlers ---
     async function handleLogin(e) {
         e.preventDefault();
         if (state.isSubmitting) return;
-        
-        state.isSubmitting = true; // Set flag
+        state.isSubmitting = true;
 
         const email = elements.emailInput.value;
         const password = elements.passwordInput.value;
 
-        const isEmailValid = validateLoginEmail();
-        const isPasswordValid = validateLoginPassword();
-        if (!isEmailValid || !isPasswordValid) {
+        if (!validateLoginEmail() || !validateLoginPassword()) {
             showToast('Error', 'Please fix the errors in the form.', 'error');
             state.isSubmitting = false; 
             return;
@@ -184,133 +225,141 @@ function initLoginPage() {
         setLoadingState(true, elements.loginButton);
 
         try {
-            // 1. Execute reCAPTCHA (Bot Protection)
             await executeRecaptcha('LOGIN');
-
-            // 2. Proceed with Firebase Login
             const persistence = elements.rememberMe.checked ? browserLocalPersistence : browserSessionPersistence;
             await setPersistence(fbAuth, persistence);
-            
             const userCredential = await signInWithEmailAndPassword(fbAuth, email, password);
             
-            if (elements.rememberMe.checked) {
-                localStorage.setItem('rememberedEmail', email);
-            } else {
-                localStorage.removeItem('rememberedEmail');
-            }
+            if (elements.rememberMe.checked) localStorage.setItem('rememberedEmail', email);
+            else localStorage.removeItem('rememberedEmail');
             
             handleLoginSuccess(userCredential.user);
 
         } catch (error) {
-            console.log("Login error code:", error.code); 
-
-            // --- MFA HANDLING START ---
             if (error.code === 'auth/multi-factor-auth-required') {
-                try {
-                    // 1. Get the resolver from the error
-                    const resolver = getMultiFactorResolver(fbAuth, error);
-                    const phoneHint = resolver.hints.find(hint => hint.factorId === PhoneMultiFactorGenerator.FACTOR_ID);
-
-                    if (phoneHint) {
-                        showToast('MFA Required', 'Sending verification code...', 'info');
-
-                        // Clear any existing verifier
-                        if (window.recaptchaVerifier) {
-                            try { window.recaptchaVerifier.clear(); } catch(e){}
-                            window.recaptchaVerifier = null;
-                        }
-
-                        // NOTE: This uses the invisible recaptcha for MFA, separate from Enterprise bot check
-                        window.recaptchaVerifier = new RecaptchaVerifier(fbAuth, 'recaptcha-container', {
-                            'size': 'invisible',
-                            'callback': (response) => {
-                                console.log("MFA reCAPTCHA solved");
-                            }
-                        });
-                        
-                        const phoneInfoOptions = {
-                            multiFactorHint: phoneHint,
-                            session: resolver.session
-                        };
-                        
-                        const phoneAuthProvider = new PhoneAuthProvider(fbAuth);
-                        const verificationId = await phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, window.recaptchaVerifier);
-                        
-                        const verificationCode = prompt(`Enter the SMS code sent to ${phoneHint.phoneNumber}`);
-                        
-                        if (verificationCode) {
-                            const cred = PhoneAuthProvider.credential(verificationId, verificationCode);
-                            const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(cred);
-                            
-                            const userCredential = await resolver.resolveSignIn(multiFactorAssertion);
-                            handleLoginSuccess(userCredential.user);
-                            return; 
-                        } else {
-                             showToast('Info', 'Login cancelled (MFA code not entered).', 'info');
-                             setLoadingState(false, elements.loginButton);
-                             state.isSubmitting = false;
-                             return;
-                        }
-                    } else {
-                        showToast('Error', 'No supported MFA method found.', 'error');
-                    }
-                } catch (mfaError) {
-                    console.error("MFA Error:", mfaError);
-                    if (window.recaptchaVerifier) {
-                        try { window.recaptchaVerifier.clear(); } catch (e) {}
-                        window.recaptchaVerifier = null;
-                    }
-                    showToast('Error', 'Multi-factor authentication failed: ' + mfaError.message, 'error');
-                    setLoadingState(false, elements.loginButton);
-                    state.isSubmitting = false;
-                    return;
-                }
+                handleMfaChallenge(error);
+            } else {
+                handleFirebaseError(error, 'login');
+                setLoadingState(false, elements.loginButton);
+                state.isSubmitting = false;
             }
-            // --- MFA HANDLING END ---
-
-            handleFirebaseError(error, 'login');
-            setLoadingState(false, elements.loginButton);
-            state.isSubmitting = false;
         }
     }
 
-    // --- Validation (Login) ---
     function validateLoginEmail(showSuccessMsg = false) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!elements.emailInput.value) {
-            return showError(elements.emailInput, 'email-error', 'Email is required.');
-        }
-        if (!emailRegex.test(elements.emailInput.value)) {
-            return showError(elements.emailInput, 'email-error', 'Please enter a valid email address.');
-        }
+        if (!elements.emailInput.value) return showError(elements.emailInput, 'email-error', 'Email is required.');
+        if (!emailRegex.test(elements.emailInput.value)) return showError(elements.emailInput, 'email-error', 'Please enter a valid email address.');
         return showSuccessMsg ? showSuccess(elements.emailInput, 'email-error') : true;
     }
 
     function validateLoginPassword(showSuccessMsg = false) {
-        if (!elements.passwordInput.value) {
-            return showError(elements.passwordInput, 'password-error', 'Password is required.');
-        }
-        if (elements.passwordInput.value.length < 6) {
-            return showError(elements.passwordInput, 'password-error', 'Password must be at least 6 characters.');
-        }
+        if (!elements.passwordInput.value) return showError(elements.passwordInput, 'password-error', 'Password is required.');
+        if (elements.passwordInput.value.length < 6) return showError(elements.passwordInput, 'password-error', 'Password must be at least 6 characters.');
         return showSuccessMsg ? showSuccess(elements.passwordInput, 'password-error') : true;
     }
 }
 
 // ========================================================================
-// REGISTER PAGE LOGIC (`register.html`)
+// SOCIAL LOGIN (With MFA Fix)
+// ========================================================================
+async function handleSocialLogin(providerName) {
+    if (state.isSubmitting) return;
+    state.isSubmitting = true; 
+    setLoadingState(true, document.getElementById('googleBtn'));
+
+    const provider = fbGoogleProvider;
+
+    try {
+        await executeRecaptcha('SOCIAL_LOGIN');
+        await setPersistence(fbAuth, browserLocalPersistence);
+        const result = await signInWithPopup(fbAuth, provider);
+        const user = result.user;
+        const additionalInfo = getAdditionalUserInfo(result);
+        
+        if (additionalInfo?.isNewUser) {
+            await createProfileDocument(user, user.displayName, user.phoneNumber);
+        }
+        
+        handleLoginSuccess(user);
+
+    } catch (error) {
+        // --- FIX: Handle MFA Challenge for Social Login ---
+        if (error.code === 'auth/multi-factor-auth-required') {
+            handleMfaChallenge(error);
+        } else {
+            handleFirebaseError(error, 'social');
+            setLoadingState(false, document.getElementById('googleBtn'));
+            state.isSubmitting = false; 
+        }
+    }
+}
+
+/**
+ * Shared function to handle MFA challenges from Login or Social Auth
+ */
+async function handleMfaChallenge(error) {
+    try {
+        const resolver = getMultiFactorResolver(fbAuth, error);
+        const phoneHint = resolver.hints.find(hint => hint.factorId === PhoneMultiFactorGenerator.FACTOR_ID);
+
+        if (phoneHint) {
+            showToast('MFA Required', 'Sending verification code...', 'info');
+
+            if (window.recaptchaVerifier) {
+                try { window.recaptchaVerifier.clear(); } catch(e){}
+                window.recaptchaVerifier = null;
+            }
+
+            window.recaptchaVerifier = new RecaptchaVerifier(fbAuth, 'recaptcha-container', {
+                'size': 'invisible'
+            });
+            
+            const phoneInfoOptions = {
+                multiFactorHint: phoneHint,
+                session: resolver.session
+            };
+            
+            const phoneAuthProvider = new PhoneAuthProvider(fbAuth);
+            const verificationId = await phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, window.recaptchaVerifier);
+            
+            // Use the SHARED modal
+            showSharedOtpModal(async (verificationCode) => {
+                try {
+                    const cred = PhoneAuthProvider.credential(verificationId, verificationCode);
+                    const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(cred);
+                    
+                    const userCredential = await resolver.resolveSignIn(multiFactorAssertion);
+                    hideSharedOtpModal();
+                    handleLoginSuccess(userCredential.user);
+                } catch (otpError) {
+                    showToast('Error', 'Verification failed: ' + otpError.message, 'error');
+                }
+            });
+
+        } else {
+            showToast('Error', 'No supported MFA method found.', 'error');
+            state.isSubmitting = false;
+        }
+    } catch (mfaError) {
+        console.error("MFA Error:", mfaError);
+        showToast('Error', 'Authentication failed: ' + mfaError.message, 'error');
+        state.isSubmitting = false;
+        
+        // Reset UI
+        setLoadingState(false, document.getElementById('loginButton'));
+        setLoadingState(false, document.getElementById('googleBtn'));
+    }
+}
+
+// ========================================================================
+// REGISTER PAGE & RECOVERY
 // ========================================================================
 function initRegisterPage() {
     const elements = {
-        // Progress
         progressBar1: document.getElementById('progress-bar-1'),
         progressBar2: document.getElementById('progress-bar-2'),
-        stepDots: {
-            1: document.getElementById('step-dot-1'),
-            2: document.getElementById('step-dot-2'),
-            3: document.getElementById('step-dot-3'),
-        },
-        // Step 1
+        stepDots: { 1: document.getElementById('step-dot-1'), 2: document.getElementById('step-dot-2'), 3: document.getElementById('step-dot-3') },
         step1: document.getElementById('step1'),
         username: document.getElementById('username'),
         email: document.getElementById('email'),
@@ -327,18 +376,15 @@ function initRegisterPage() {
         termsCheckbox: document.getElementById('termsCheckbox'),
         nextToStep2: document.getElementById('nextToStep2'),
         googleBtn: document.getElementById('googleBtn'),
-        // Step 2
         step2: document.getElementById('step2'),
         phone: document.getElementById('phone'),
         backToStep1: document.getElementById('backToStep1'),
         createAccountBtn: document.getElementById('createAccountBtn'),
         skipMfaBtn: document.getElementById('skipMfaBtn'),
-        // Step 3
         step3: document.getElementById('step3'),
         welcomeUsername: document.getElementById('welcome-username'),
     };
 
-    // --- Event Listeners ---
     if (!elements.step1) return; 
     
     elements.password.addEventListener('input', () => {
@@ -358,18 +404,12 @@ function initRegisterPage() {
     }, 300));
     elements.termsCheckbox.addEventListener('change', validateStep1);
     
-    // Step Navigation
     elements.nextToStep2.addEventListener('click', handleGoToStep2);
     elements.backToStep1.addEventListener('click', () => goToStep(1));
-    
-    // Form Submission
     elements.createAccountBtn.addEventListener('click', handleRegistration);
     elements.skipMfaBtn.addEventListener('click', handleRegistration); 
-    
-    // Social Logins
     elements.googleBtn.addEventListener('click', () => handleSocialLogin('google'));
 
-    // --- Step Navigation (Register) ---
     function goToStep(stepNumber) {
         state.currentStep = stepNumber;
         const steps = [elements.step1, elements.step2, elements.step3];
@@ -391,9 +431,7 @@ function initRegisterPage() {
             } else {
                 if (stepEl.classList.contains('active')) {
                     stepEl.classList.add('exiting');
-                    setTimeout(() => {
-                        stepEl.classList.remove('active', 'exiting');
-                    }, 400);
+                    setTimeout(() => stepEl.classList.remove('active', 'exiting'), 400);
                 }
                 if ((index + 1) < stepNumber) {
                     dotEl.classList.add('bg-success-500', 'text-white');
@@ -407,7 +445,6 @@ function initRegisterPage() {
             }
         });
 
-        // Update progress bar fill
         const bars = [elements.progressBar1, elements.progressBar2];
         bars.forEach((bar, index) => {
             if (index + 1 < stepNumber) {
@@ -420,74 +457,56 @@ function initRegisterPage() {
         });
     }
 
-    // --- Form Handlers (Register) ---
     function handleGoToStep2() {
         if (validateStep1()) {
             state.registrationData.username = elements.username.value;
             state.registrationData.email = elements.email.value;
             state.registrationData.password = elements.password.value;
             goToStep(2);
-        } else {
-            showToast('Error', 'Please fix the errors in the form.', 'error');
-        }
+        } else showToast('Error', 'Please fix the errors in the form.', 'error');
     }
 
-    // --- Handle Registration with MFA Enrollment ---
     async function handleRegistration(e) {
         e.preventDefault(); 
         if (state.isSubmitting) return;
         
-        state.isSubmitting = true; // Set flag
+        state.isSubmitting = true; 
         state.registrationData.phone = elements.phone.value;
         
         setLoadingState(true, elements.createAccountBtn);
         setLoadingState(true, elements.skipMfaBtn);
         
         try {
-            // 1. Execute reCAPTCHA (Bot Protection)
             await executeRecaptcha('REGISTER');
-
-            // 2. Create the user
             const userCredential = await createUserWithEmailAndPassword(fbAuth, state.registrationData.email, state.registrationData.password);
             const user = userCredential.user;
             
-            // 3. Update Auth profile
             await updateProfile(user, {
                 displayName: state.registrationData.username,
                 photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(state.registrationData.username)}&background=4361ee&color=fff&size=128`
             });
 
-            // 4. Create Firestore profile document
             await createProfileDocument(user, state.registrationData.username, state.registrationData.phone);
             
-            // --- MFA ENROLLMENT LOGIC START ---
-            // If the user entered a phone number and clicked "Create Account", try to enroll them
             if (state.registrationData.phone && e.target.id !== 'skipMfaBtn') {
                 try {
-                    // A. Initialize Invisible Recaptcha for MFA
                     if (window.recaptchaVerifier) {
                         try { window.recaptchaVerifier.clear(); } catch(e) {}
                         window.recaptchaVerifier = null;
                     }
 
                     window.recaptchaVerifier = new RecaptchaVerifier(fbAuth, 'recaptcha-container', {
-                        'size': 'invisible',
-                        'callback': (response) => {
-                            console.log("MFA reCAPTCHA solved");
-                        }
+                        'size': 'invisible'
                     });
 
-                    // B. Send SMS Verification Code
                     const verificationId = await new PhoneAuthProvider(fbAuth).verifyPhoneNumber(
                         { phoneNumber: state.registrationData.phone, session: null },
                         window.recaptchaVerifier
                     );
 
-                    // C. Ask User for Code
                     const code = prompt(`MFA Setup: Enter the SMS code sent to ${state.registrationData.phone}`);
 
                     if (code) {
-                        // D. Create Credential & Enroll
                         const cred = PhoneAuthProvider.credential(verificationId, code);
                         const assertion = PhoneMultiFactorGenerator.assertion(cred);
                         await multiFactor(user).enroll(assertion, "My Phone Number");
@@ -497,51 +516,31 @@ function initRegisterPage() {
                     }
                 } catch (mfaError) {
                     console.error("MFA Enrollment Error:", mfaError);
-                    if (window.recaptchaVerifier) {
-                        try { window.recaptchaVerifier.clear(); } catch(e) {}
-                        window.recaptchaVerifier = null;
-                    }
                     showToast('Warning', 'Account created, but MFA setup failed: ' + mfaError.message, 'warning');
-                    // Allow the flow to continue to dashboard so user isn't stuck
                 }
             }
-            // --- MFA ENROLLMENT LOGIC END ---
 
             await setPersistence(fbAuth, browserLocalPersistence);
-
             elements.welcomeUsername.textContent = state.registrationData.username;
             goToStep(3);
-            
-            setTimeout(() => {
-                window.location.replace('/app/dashboard.html');
-            }, 2000); 
+            setTimeout(() => window.location.replace('/app/dashboard.html'), 2000); 
 
         } catch (error) {
             handleFirebaseError(error, 'register');
             setLoadingState(false, elements.createAccountBtn);
             setLoadingState(false, elements.skipMfaBtn);
             state.isSubmitting = false; 
-            // Go back to step 1 if the error was email/password related
-            if (error.code === 'auth/email-already-in-use' || error.code === 'auth/weak-password') {
-                goToStep(1);
-            }
+            if (error.code === 'auth/email-already-in-use' || error.code === 'auth/weak-password') goToStep(1);
         }
     }
 
-    // --- Validation (Register) ---
     function validateStep1() {
         const isUsername = validateField(elements.username, 'username-error', validateUsername, false);
         const isEmail = validateField(elements.email, 'email-error', validateEmail, false);
         const isPassword = validateField(elements.password, 'password-error', validatePassword, false);
         const isTerms = elements.termsCheckbox.checked;
-
-        if (isUsername && isEmail && isPassword && isTerms) {
-            elements.nextToStep2.disabled = false;
-            return true;
-        } else {
-            elements.nextToStep2.disabled = true;
-            return false;
-        }
+        elements.nextToStep2.disabled = !(isUsername && isEmail && isPassword && isTerms);
+        return elements.nextToStep2.disabled === false;
     }
     
     function validateField(inputEl, errorElId, validator, showSuccessMsg = true) {
@@ -550,32 +549,22 @@ function initRegisterPage() {
 
     function validateUsername(inputEl, errorElId, showSuccessMsg = true) {
         const username = inputEl.value;
-        if (username.length < 3) {
-            return showError(inputEl, errorElId, 'Username must be at least 3 characters.');
-        }
-        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-            return showError(inputEl, errorElId, 'Only letters, numbers, and underscores allowed.');
-        }
+        if (username.length < 3) return showError(inputEl, errorElId, 'Username must be at least 3 characters.');
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) return showError(inputEl, errorElId, 'Only letters, numbers, and underscores allowed.');
         return showSuccessMsg ? showSuccess(inputEl, errorElId) : true;
     }
 
     function validateEmail(inputEl, errorElId, showSuccessMsg = true) {
         const email = inputEl.value;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email) {
-            return showError(inputEl, errorElId, 'Email is required.');
-        }
-        if (!emailRegex.test(email)) {
-            return showError(inputEl, errorElId, 'Please enter a valid email address.');
-        }
+        if (!email) return showError(inputEl, errorElId, 'Email is required.');
+        if (!emailRegex.test(email)) return showError(inputEl, errorElId, 'Please enter a valid email address.');
         return showSuccessMsg ? showSuccess(inputEl, errorElId) : true;
     }
 
     function validatePassword(inputEl, errorElId, showSuccessMsg = true) {
         const reqs = getPasswordReqs(inputEl.value);
-        if (!Object.values(reqs).every(Boolean)) {
-            return showError(inputEl, errorElId, 'Password does not meet all requirements.');
-        }
+        if (!Object.values(reqs).every(Boolean)) return showError(inputEl, errorElId, 'Password does not meet all requirements.');
         return showSuccessMsg ? showSuccess(inputEl, errorElId) : true;
     }
     
@@ -595,13 +584,9 @@ function initRegisterPage() {
         let text = '';
 
         if (password.length > 0) {
-            if (strength <= 2) {
-                barClass = 'w-1/3 bg-danger-500'; text = 'Weak';
-            } else if (strength === 3) {
-                barClass = 'w-2/3 bg-warning-500'; text = 'Medium';
-            } else {
-                barClass = 'w-full bg-success-500'; text = 'Strong';
-            }
+            if (strength <= 2) { barClass = 'w-1/3 bg-danger-500'; text = 'Weak'; } 
+            else if (strength === 3) { barClass = 'w-2/3 bg-warning-500'; text = 'Medium'; } 
+            else { barClass = 'w-full bg-success-500'; text = 'Strong'; }
         }
         els.passwordStrengthBar.className = `h-full transition-all duration-300 ${barClass}`;
         els.passwordStrengthText.textContent = text;
@@ -629,9 +614,6 @@ function initRegisterPage() {
     }
 }
 
-// ========================================================================
-// RECOVERY PAGE LOGIC (`recovery.html`)
-// ========================================================================
 function initRecoveryPage() {
     const elements = {
         stepEmail: document.getElementById('stepEmail'),
@@ -643,38 +625,27 @@ function initRecoveryPage() {
     };
     
     let currentStep = 1;
-
-    // --- Event Listeners ---
     if (!elements.recoveryForm) return; 
-    
     elements.recoveryForm.addEventListener('submit', handleRecoverySubmit);
     elements.emailInput.addEventListener('input', debounce(() => validateRecoveryEmail(true), 300));
     
-    // --- Step Navigation (Recovery) ---
     function goToStep(stepName) {
         const currentStepEl = (currentStep === 1) ? elements.stepEmail : elements.stepSuccess;
         const nextStepEl = (stepName === 'email') ? elements.stepEmail : elements.stepSuccess;
         
         if (currentStepEl) {
             currentStepEl.classList.add('exiting');
-            setTimeout(() => {
-                currentStepEl.classList.remove('active', 'exiting');
-            }, 400);
+            setTimeout(() => currentStepEl.classList.remove('active', 'exiting'), 400);
         }
-        if (nextStepEl) {
-            setTimeout(() => {
-                nextStepEl.classList.add('active');
-            }, 100);
-        }
+        if (nextStepEl) setTimeout(() => nextStepEl.classList.add('active'), 100);
         currentStep = (stepName === 'email') ? 1 : 2;
     }
 
-    // --- Form Handlers (Recovery) ---
     async function handleRecoverySubmit(e) {
         e.preventDefault();
         if (state.isSubmitting) return;
 
-        state.isSubmitting = true; // Set flag
+        state.isSubmitting = true; 
         const email = elements.emailInput.value;
         if (!validateRecoveryEmail()) {
             showToast('Error', 'Please enter a valid email address.', 'error');
@@ -685,15 +656,11 @@ function initRecoveryPage() {
         setLoadingState(true, elements.recoveryButton);
 
         try {
-            // 1. Execute reCAPTCHA (Bot Protection)
             await executeRecaptcha('RECOVERY');
-
-            // 2. Send Reset Email
             await sendPasswordResetEmail(fbAuth, email);
             elements.sentEmail.textContent = email;
             goToStep('success');
         } catch (error) {
-            // For security, we also go to success step even if user not found
             if (error.code === 'auth/user-not-found') {
                 elements.sentEmail.textContent = email;
                 goToStep('success');
@@ -706,174 +673,47 @@ function initRecoveryPage() {
         }
     }
 
-    // --- Validation (Recovery) ---
     function validateRecoveryEmail(showSuccessMsg = false) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!elements.emailInput.value) {
-            return showError(elements.emailInput, 'email-error', 'Email is required.');
-        }
-        if (!emailRegex.test(elements.emailInput.value)) {
-            return showError(elements.emailInput, 'email-error', 'Please enter a valid email address.');
-        }
+        if (!elements.emailInput.value) return showError(elements.emailInput, 'email-error', 'Email is required.');
+        if (!emailRegex.test(elements.emailInput.value)) return showError(elements.emailInput, 'email-error', 'Please enter a valid email address.');
         return showSuccessMsg ? showSuccess(elements.emailInput, 'email-error') : true;
     }
 }
 
-// ========================================================================
-// SHARED FUNCTIONS (used by all auth pages)
-// ========================================================================
+// --- Shared Functions ---
 
-// --- Social Login (Shared) ---
-async function handleSocialLogin(providerName) {
-    if (state.isSubmitting) return;
-    
-    state.isSubmitting = true; 
-    setLoadingState(true, document.getElementById('googleBtn'));
-
-    const provider = fbGoogleProvider;
-
-    try {
-        // 1. Execute reCAPTCHA (Optional for social, but good practice)
-        await executeRecaptcha('SOCIAL_LOGIN');
-
-        await setPersistence(fbAuth, browserLocalPersistence);
-        const result = await signInWithPopup(fbAuth, provider);
-        const user = result.user;
-        const additionalInfo = getAdditionalUserInfo(result);
-        
-        // Check if this is a new user. If so, create their profile documents.
-        if (additionalInfo?.isNewUser) {
-            console.log("New social user detected, creating profile...");
-            await createProfileDocument(user, user.displayName, user.phoneNumber);
-        }
-        
-        handleLoginSuccess(user);
-
-    } catch (error) {
-        handleFirebaseError(error, 'social');
-        setLoadingState(false, document.getElementById('googleBtn'));
-        state.isSubmitting = false; 
-    }
-}
-
-/**
- * Creates the initial user profile document in Firestore
- */
 async function createProfileDocument(user, username, phone = '') {
     if (!user) return;
-    
     const userProfileRef = doc(fbDB, 'user_data', user.uid, 'profile', 'settings');
-    
-    const newUserProfile = {
-        userId: user.uid,
-        fullName: username || 'New User',
-        email: user.email,
-        phone: phone || '',
-        createdAt: serverTimestamp(),
-        theme: 'dark', 
-        plan: 'free',
-        role: 'user',
-    };
-    
     try {
-        await setDoc(userProfileRef, newUserProfile);
-        console.log(`Successfully created 'settings' document for user ${user.uid}`);
+        await setDoc(userProfileRef, {
+            userId: user.uid,
+            fullName: username || 'New User',
+            email: user.email,
+            phone: phone || '',
+            createdAt: serverTimestamp(),
+            theme: 'dark', 
+            role: 'user',
+        });
     } catch (e) {
-        console.error("CRITICAL ERROR: Could not create user profile document.", e);
-        showToast("Error", "Could not save user profile. Please update it in Settings.", "error");
+        console.error("Profile creation error", e);
     }
 }
 
-
-// --- Auth Success/Error (Shared) ---
 function handleLoginSuccess(user) {
     showToast('Login Successful!', `Welcome, ${user.displayName || user.email}.`, 'success');
     localStorage.setItem('authToken', user.accessToken);
-    
-    if (document.getElementById('step3')) {
-        // If on register page, go to step 3
-        document.getElementById('welcome-username').textContent = user.displayName || 'User';
-        if (typeof initRegisterPage.goToStep === 'function') {
-            initRegisterPage.goToStep(3);
-        }
-    }
-
-    setTimeout(() => {
-       window.location.replace('/app/dashboard.html');
-    }, 1000); 
+    setTimeout(() => window.location.replace('/app/dashboard.html'), 1000); 
 }
 
 function handleFirebaseError(error, context) {
     console.error(`Firebase Auth Error (${context}):`, error.code, error.message);
-    let userMessage = 'An unknown error occurred. Please try again.';
-    let emailError = false, passError = false;
-
-    switch (error.code) {
-        // Common
-        case 'auth/invalid-email':
-            userMessage = 'Please enter a valid email address.';
-            emailError = true;
-            break;
-        case 'auth/network-request-failed':
-            userMessage = 'Network error. Please check your internet connection.';
-            break;
-        case 'auth/too-many-requests':
-            userMessage = 'Access temporarily disabled. Please reset your password or try again later.';
-            break;
-        
-        // Login
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-        case 'auth/invalid-credential':
-            userMessage = 'Invalid email or password. Please try again.';
-            emailError = true; passError = true;
-            break;
-        
-        // Register
-        case 'auth/email-already-in-use':
-            userMessage = 'This email is already in use. Please log in.';
-            emailError = true;
-            if (document.getElementById('step1') && typeof initRegisterPage.goToStep === 'function') {
-                initRegisterPage.goToStep(1);
-            }
-            break;
-        case 'auth/weak-password':
-            userMessage = 'Password is too weak. Please choose a stronger one.';
-            passError = true;
-            if (document.getElementById('step1') && typeof initRegisterPage.goToStep === 'function') {
-                initRegisterPage.goToStep(1);
-            }
-            break;
-
-        // Social
-        case 'auth/popup-closed-by-user':
-            userMessage = 'Sign-in was cancelled.';
-            break;
-        case 'auth/account-exists-with-different-credential':
-            userMessage = 'An account already exists with this email using a different sign-in method.';
-            emailError = true;
-            break;
-            
-        // Recovery
-        case 'auth/user-not-found':
-            userMessage = 'Recovery email sent (if account exists).';
-            break;
-    }
-    
-    if (emailError && document.getElementById('email')) {
-        showError(document.getElementById('email'), 'email-error', context === 'login' ? ' ' : userMessage);
-    }
-    if (passError && document.getElementById('password')) {
-        showError(document.getElementById('password'), 'password-error', context === 'login' ? userMessage : ' ');
-    }
-    
-    if (error.code !== 'auth/user-not-found') {
-        showToast('Error', userMessage, 'error');
-    }
+    let message = "An error occurred.";
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') message = "Invalid email or password.";
+    else if (error.code === 'auth/popup-closed-by-user') message = "Sign-in cancelled.";
+    showToast('Error', message, 'error');
 }
-
-
-// --- UI & Validation Helpers (Shared) ---
 
 function toggleTheme() {
     const isDark = document.documentElement.classList.toggle('dark');
@@ -894,12 +734,35 @@ function syncThemeToggleButton() {
     });
 }
 
+function togglePasswordVisibility(input, toggle) {
+    input.type = input.type === 'password' ? 'text' : 'password';
+    toggle.querySelector('i').className = input.type === 'password' ? 'bi bi-eye-fill' : 'bi bi-eye-slash-fill';
+}
 
-function togglePasswordVisibility(passwordEl, toggleEl) {
-    const isVisible = passwordEl.type === 'text';
-    passwordEl.type = isVisible ? 'password' : 'text';
-    const icon = toggleEl.querySelector('i');
-    icon.className = isVisible ? 'bi bi-eye-fill' : 'bi bi-eye-slash-fill';
+function setLoadingState(isLoading, btn) {
+    if(!btn) return;
+    const text = btn.querySelector('.button-text');
+    const spinner = btn.querySelector('.button-spinner');
+    btn.disabled = isLoading;
+    if(text) text.classList.toggle('hidden', isLoading);
+    if(spinner) spinner.classList.toggle('hidden', !isLoading);
+}
+
+function showToast(title, message, type='info') {
+    if(!toastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type} show`; 
+    toast.innerHTML = `<div><b>${title}</b><br>${message}</div>`;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
 }
 
 function showError(inputEl, errorElId, message) {
@@ -924,75 +787,4 @@ function showSuccess(inputEl, errorElId) {
         errorEl.classList.add('hidden');
     }
     return true;
-}
-
-function setLoadingState(isLoading, buttonEl, loadingText = "Loading...") {
-    if (!buttonEl) return;
-    state.isSubmitting = isLoading;
-    buttonEl.disabled = isLoading;
-    
-    const textEl = buttonEl.querySelector('.button-text');
-    const spinnerEl = buttonEl.querySelector('.button-spinner');
-    
-    if (isLoading) {
-        if(textEl) textEl.classList.add('hidden');
-        if(spinnerEl) spinnerEl.classList.remove('hidden');
-    } else {
-        if(textEl) textEl.classList.remove('hidden');
-        if(spinnerEl) spinnerEl.classList.add('hidden');
-    }
-}
-
-function showToast(title, message, type = 'info') {
-    if (!toastContainer) return;
-    const icons = {
-        success: 'bi-check-circle-fill text-green-500',
-        error: 'bi-x-circle-fill text-red-500',
-        warning: 'bi-exclamation-triangle-fill text-yellow-500',
-        info: 'bi-info-circle-fill text-blue-500'
-    };
-    const borderColors = {
-        success: 'border-green-500',
-        error: 'border-red-500',
-        warning: 'border-yellow-500',
-        info: 'border-blue-500'
-    };
-
-    const toast = document.createElement('div');
-    toast.className = `toast w-[350px] max-w-[90vw] p-4 rounded-lg bg-white dark:bg-slate-800 shadow-2xl border-l-4 ${borderColors[type]} flex items-start gap-3`;
-    toast.setAttribute('role', 'alert');
-
-    toast.innerHTML = `
-        <i class="bi ${icons[type]} text-xl mt-1"></i>
-        <div class="flex-1">
-            <div class="font-semibold text-slate-900 dark:text-white">${title}</div>
-            <div class="text-sm text-slate-600 dark:text-slate-300">${message}</div>
-        </div>
-        <button class="text-slate-400 hover:text-slate-600" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
-    `;
-
-    toastContainer.appendChild(toast);
-    
-    setTimeout(() => toast.classList.add('show'), 100);
-
-    setTimeout(() => {
-        if(toast.parentElement) {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                if (toast.parentElement) toast.remove();
-            }, 400);
-        }
-    }, 5000);
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
 }

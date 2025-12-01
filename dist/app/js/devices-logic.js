@@ -14,6 +14,7 @@ import {
     deleteDoc,
     onSnapshot,  // <-- ADDED
     orderBy,
+    where, // <-- ADDED: For notification query
     formatTimeAgo,
     getDeviceIcon,
     getBatteryIcon,
@@ -69,6 +70,9 @@ class DevicePageManager {
             
             gridViewBtn: document.getElementById('gridViewBtn'),
             tableViewBtn: document.getElementById('tableViewBtn'),
+
+            // Notification Badge (Added for functional parity with dashboard)
+            notificationBadge: document.getElementById('notificationBadge'),
         };
 
         // --- Internal State ---
@@ -94,6 +98,7 @@ class DevicePageManager {
         // It shows the skeleton, then calls its own data-fetching function.
         this.setLoading(true); // Show loading skeleton immediately
         this.listenForDevices(); // Call the listener function
+        this.listenForUnreadNotifications(); // Call the notification listener
         
         this.setViewMode(localStorage.getItem('deviceViewMode') || 'grid');
     }
@@ -104,7 +109,7 @@ class DevicePageManager {
         // --- THIS IS THE FIX ---
         // Restore the original, correct query that sorts devices.
         // This query was missing 'orderBy'.
-        const q = query(devicesRef, orderBy('lastSeen', 'desc')); 
+        const q = query(devicesRef, orderBy('name', 'asc')); 
         // --- END OF FIX ---
 
         this.deviceListener = onSnapshot(q, (snapshot) => {
@@ -116,6 +121,35 @@ class DevicePageManager {
             this.setLoading(false); // Hide loading on error
             this.handleDevicesLoaded([]); // Show empty state
         });
+    }
+
+    // NEW: Logic to calculate *all* unread notifications for the badge
+    // Matches dashboard-logic.js implementation
+    listenForUnreadNotifications() {
+        const notifsRef = collection(fbDB, 'user_data', this.userId, 'notifications');
+        
+        // Query specifically for unread items to get an accurate count
+        const q = query(notifsRef, where("read", "==", false));
+
+        onSnapshot(q, (snapshot) => {
+            this.updateBadgeCount(snapshot.size);
+        }, (error) => {
+            console.error("Error listening for unread count:", error);
+        });
+    }
+
+    updateBadgeCount(count) {
+        const badge = this.elements.notificationBadge;
+        if (!badge) return;
+
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+            badge.classList.add('animate-pulse');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('animate-pulse');
+        }
     }
 
     setupEventListeners() {
@@ -282,7 +316,7 @@ class DevicePageManager {
                 </span>
             </div>
             <h3 class="font-heading font-semibold text-xl text-text-primary dark:text-dark-text-primary truncate mb-1">${device.name || 'Unnamed Device'}</h3>
-            <p class="text-sm text-text-secondary dark:text-dark-text-secondary mb-4 truncate">${device.model || 'No model info'}</p>
+            <p class="text-sm text-text-secondary dark:text-dark-text-secondary mb-4 truncate">${device.model || 'No model info'}></p>
             
             <div class="space-y-3 text-sm">
                 <div class="flex justify-between">

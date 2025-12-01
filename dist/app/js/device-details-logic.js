@@ -13,7 +13,8 @@ import {
     formatTimeAgo,
     getDeviceIcon,
     getDeviceColor,
-    sanitizeHTML
+    sanitizeHTML,
+    where
 } from '/app/js/app-shell.js'; 
 
 // IMPORT GOOGLE MAP STYLES
@@ -33,6 +34,9 @@ let infoWindow = null;
 const elements = {
     loader: document.getElementById('skeleton-loader'),
     content: document.getElementById('device-content'),
+    
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
     
     // Header
     headerName: document.getElementById('header-device-name'),
@@ -56,9 +60,12 @@ const elements = {
     
     // Info
     infoOS: document.getElementById('device-os'),
-    infoSerial: document.getElementById('device-serial'),
+    // UPDATED: Renamed from infoSerial to infoCarrierStatus
+    infoCarrierStatus: document.getElementById('device-carrier-status'),
     infoIP: document.getElementById('device-ip'),
-    infoIMEI: document.getElementById('device-imei'),
+    // UPDATED: Renamed from infoIMEI to infoCarrier
+    infoCarrier: document.getElementById('device-carrier'),
+    infoMAC: document.getElementById('device-mac'),
     
     // Charts
     batteryChart: document.getElementById('battery-chart'),
@@ -88,6 +95,8 @@ waitForAuth((userId) => {
     if (currentDeviceId) {
         console.log(`Initializing details for device: ${currentDeviceId}`);
         initPage(userId, currentDeviceId);
+        // Start listening for notifications
+        listenForUnreadNotifications(userId);
     } else {
         window.location.href = '/app/devices.html';
     }
@@ -99,6 +108,34 @@ function initPage(userId, deviceId) {
     
     listenForDeviceData(userId, deviceId);
     listenForActivityData(userId, deviceId);
+}
+
+// --- Notification Logic ---
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
 }
 
 function listenForDeviceData(userId, deviceId) {
@@ -117,8 +154,7 @@ function listenForDeviceData(userId, deviceId) {
 function listenForActivityData(userId, deviceId) {
     const activityRef = collection(fbDB, 'user_data', userId, 'devices', deviceId, 'activity');
     
-    // FIX: Order by 'timestamp' to match the new data format used in Notifications/Dashboard
-    // If your database still uses 'time', you might need to revert this to 'time'.
+    // Order by 'timestamp' to match the new data format used in Notifications/Dashboard
     const q = query(activityRef, orderBy('timestamp', 'desc'), limit(10));
 
     activityListener = onSnapshot(q, (snapshot) => {
@@ -151,7 +187,6 @@ function updateUI(device) {
     elements.deviceStatus.className = `text-sm font-semibold uppercase px-3 py-1 rounded-full border border-current`;
 
     // Last Seen
-    // FIX: Use formatTimeAgo directly which handles .toDate() check internally
     elements.deviceLastSeen.textContent = formatTimeAgo(device.lastSeen);
     
     // Stats
@@ -162,9 +197,26 @@ function updateUI(device) {
     
     // Info Grid
     elements.infoOS.textContent = device.os || 'N/A';
-    elements.infoSerial.textContent = device.serial || 'N/A';
     elements.infoIP.textContent = device.ip || 'N/A';
-    elements.infoIMEI.textContent = device.imei || 'N/A';
+    if(elements.infoMAC) elements.infoMAC.textContent = device.mac || 'N/A';
+
+    // UPDATED: Populate Carrier and Carrier Status
+    // Using fields 'carrier' and 'carrierStatus' from Firestore document
+    elements.infoCarrier.textContent = device.carrier || 'Unknown Carrier';
+    
+    const carrierStatus = device.carrierStatus || 'Unknown';
+    elements.infoCarrierStatus.textContent = carrierStatus;
+    
+    // Optional: Add visual color coding for Carrier Status
+    if (carrierStatus.toLowerCase() === 'active') {
+        elements.infoCarrierStatus.classList.add('text-success-500');
+        elements.infoCarrierStatus.classList.remove('text-danger-500');
+    } else if (carrierStatus.toLowerCase() === 'inactive' || carrierStatus.toLowerCase() === 'blocked') {
+        elements.infoCarrierStatus.classList.add('text-danger-500');
+        elements.infoCarrierStatus.classList.remove('text-success-500');
+    } else {
+        elements.infoCarrierStatus.classList.remove('text-success-500', 'text-danger-500');
+    }
 
     // 2. Reveal Content
     elements.loader.style.display = 'none';
@@ -192,7 +244,6 @@ function renderActivityList(activities) {
         if (activity.type === 'warning') icon = 'bi-exclamation-triangle-fill text-warning';
         if (activity.type === 'lost-mode') icon = 'bi-exclamation-diamond-fill text-danger';
         
-        // FIX: Robust time handling matching dashboard/notifications logic
         let timeVal = activity.timestamp || activity.time;
         let timeAgo = 'Just now';
         
@@ -227,7 +278,7 @@ function initMap() {
     const styles = (currentTheme === 'dark') ? mapStyles.dark : mapStyles.light;
 
     map = new google.maps.Map(elements.mapContainer, {
-        center: { lat: 2.9436, lng: 101.7949 }, // Default: GMI
+        center: { lat: 2.9436, lng: 101.7949 }, // Default: GMI, Kajang
         zoom: 13,
         disableDefaultUI: true,
         zoomControl: true,

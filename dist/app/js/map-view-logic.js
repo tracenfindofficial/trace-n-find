@@ -13,7 +13,8 @@ import {
     onSnapshot,
     query,
     orderBy,
-    sanitizeHTML
+    sanitizeHTML,
+    where // Added 'where' for notification filtering
 } from '/app/js/app-shell.js';
 
 // Import Google Map Styles
@@ -34,6 +35,9 @@ const elements = {
     deviceListContainer: document.getElementById('deviceListContainer'),
     deviceListEmpty: document.getElementById('device-list-empty'),
     mapSidebarPanel: document.getElementById('mapSidebarPanel'),
+    
+    // Notification Badge (New)
+    notificationBadge: document.getElementById('notificationBadge'),
     
     // Controls
     toggleDeviceListBtn: document.getElementById('toggleDeviceListBtn'),
@@ -80,6 +84,7 @@ waitForAuth((userId) => {
     initMap();
     setupEventListeners();
     listenForDevices(userId); // Start listening for real-time device data
+    listenForUnreadNotifications(userId); // Start listening for notifications
 });
 
 /**
@@ -184,6 +189,41 @@ function listenForDevices(userId) {
         console.error("Error listening for devices:", error);
         showToast('Error', 'Could not load real-time device data.', 'error');
     });
+}
+
+/**
+ * Listen for unread notifications to update the badge.
+ * @param {string} userId - The authenticated user's ID.
+ */
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+/**
+ * Update the notification badge UI.
+ * @param {number} count - The number of unread notifications.
+ */
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
 }
 
 /**

@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="description" content="Backup & Restore - Trace'N Find: Smart Tracking for Lost & Stolen Devices">
+    <meta name="description" content="Backup & Restore - Trace'N Find">
     <title>Backup & Restore - Trace'N Find</title>
     
-    <!-- 
-      PERFORMANCE FIX: 
-      Render-blocking script to prevent Flash of Unstyled Content (FOUC).
-    -->
     <script>
       (function() {
         try {
@@ -28,19 +24,19 @@
       })();
     </script>
 
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Google Fonts (Inter & Poppins) -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
-    <!-- INTEGRATION FIX: Root-relative path -->
     <link rel="icon" type="image/png" href="/public/assets/images/transp.png">
+
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
@@ -57,7 +53,6 @@
                             '400': '#8596f6', '500': '#6772f4', '600': '#4361ee', '700': '#3a50d0',
                             '800': '#3042a9', '900': '#2a3a85', '950': '#1a2353',
                         },
-                        // AESTHETICS FIX: Use CSS variables
                         success: 'var(--color-success)',
                         warning: 'var(--color-warning)',
                         danger: 'var(--color-danger)',
@@ -105,14 +100,13 @@
             color: var(--color-text-primary);
         }
         
-        /* App Layout Styles (from app-shell.js) */
+        /* Theme Variables */
         :root {
             --sidebar-width-full: 280px;
             --sidebar-width-mini: 80px;
             --header-height: 70px;
             --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             
-            /* CSS variables for JS */
             --color-bg-primary: #f1f5f9;
             --color-bg-card: #ffffff;
             --color-bg-sidebar: rgba(255, 255, 255, 0.8);
@@ -123,11 +117,8 @@
             --color-primary-rgb: 67, 97, 238;
             --color-success: #10b981;
             --color-warning: #f59e0b;
-            --color-warning-rgb: 245, 158, 11;
             --color-danger: #ef4444;
-            --color-danger-rgb: 239, 68, 68;
             --color-info: #06b6d4;
-            --color-info-rgb: 6, 182, 212;
 
             --dark-bg-primary: #0f172a;
             --dark-bg-card: #1e293b;
@@ -161,7 +152,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Sidebar */
+        /* Sidebar & Header */
         .sidebar {
             width: var(--sidebar-width-full);
             background-color: var(--color-bg-sidebar);
@@ -175,10 +166,7 @@
         .sidebar-nav { flex-grow: 1; padding: 1rem 0.75rem; overflow-y: auto; overflow-x: hidden; }
         .sidebar-footer { border-top: 1px solid var(--color-border); }
         .sidebar-mini { width: var(--sidebar-width-mini); }
-        .sidebar-mini .brand-text,
-        .sidebar-mini .nav-link-text,
-        .sidebar-mini .user-info,
-        .sidebar-mini .logout-text { opacity: 0; visibility: hidden; width: 0; transition: opacity 0.1s ease; }
+        .sidebar-mini .brand-text, .sidebar-mini .nav-link-text, .sidebar-mini .user-info, .sidebar-mini .logout-text { opacity: 0; visibility: hidden; width: 0; transition: opacity 0.1s ease; }
         .sidebar-mini .nav-link, .sidebar-mini .user-profile { justify-content: center; }
         .sidebar-mini .nav-link-icon { margin-right: 0; font-size: 1.5rem; }
         .sidebar-mini .logout-button { justify-content: center; }
@@ -192,6 +180,7 @@
             border: 1px solid var(--color-border); white-space: nowrap;
             opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease;
             pointer-events: none;
+            z-index: 20;
         }
         .sidebar-mini .nav-link:hover .nav-link-text { opacity: 1; visibility: visible; transition-delay: 0.2s; }
         
@@ -255,58 +244,29 @@
             border: none;
             cursor: pointer;
         }
-        .btn-sm {
-             padding: 0.5rem 1rem;
-             font-size: 0.875rem;
-        }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
         .btn-primary { background-color: var(--color-primary); color: white; }
         .btn-primary:hover { background-color: #3a50d0; }
-        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; opacity: 0.7; }
         .btn-danger { background-color: var(--color-danger); color: white; }
-        .btn-danger:hover { background-color: rgba(220, 53, 69, 0.8); }
-        .btn-info { background-color: var(--color-info); color: white; }
-        .btn-info:hover { background-color: rgba(6, 182, 212, 0.8); }
-        .btn-warning { background-color: var(--color-warning); color: #1e293b; }
-        .btn-warning:hover { background-color: rgba(245, 158, 11, 0.8); }
         .btn-secondary {
             background-color: var(--color-bg-card);
             color: var(--color-text-primary);
             border: 1px solid var(--color-border);
         }
-        .btn-secondary:hover {
-            background-color: var(--color-bg-primary);
-        }
-        [data-theme="dark"] .btn-secondary {
-            background-color: var(--color-bg-card);
-            border-color: var(--color-border);
-            color: var(--color-text-primary);
-        }
-        [data-theme="dark"] .btn-secondary:hover {
-            background-color: var(--color-border);
-        }
+        .btn-secondary:hover { background-color: var(--color-bg-primary); }
+        [data-theme="dark"] .btn-secondary { background-color: var(--color-bg-card); border-color: var(--color-border); color: var(--color-text-primary); }
+        [data-theme="dark"] .btn-secondary:hover { background-color: var(--color-border); }
 
         /* Button Spinner */
         .button-spinner {
-            width: 20px;
-            height: 20px;
+            width: 20px; height: 20px;
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-top-color: white;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-         .btn-primary .button-spinner {
-            border-top-color: white;
-         }
-         .btn-secondary .button-spinner {
-            border-top-color: var(--color-primary);
-            border: 3px solid var(--color-border);
-         }
-
-
-        /* ==========================================================================
-           BACKUP PAGE STYLES
-           ========================================================================== */
         
+        /* Page Specific: Backup List */
         .backup-list-item {
             display: flex;
             align-items: center;
@@ -317,24 +277,21 @@
             animation: fadeIn 0.5s ease-out forwards;
             opacity: 0;
         }
-        .backup-list-item:last-child {
-            border-bottom: none;
-        }
-        .backup-list-item:hover {
-            background-color: rgba(var(--color-primary-rgb), 0.05);
-        }
+        .backup-list-item:last-child { border-bottom: none; }
+        .backup-list-item:hover { background-color: rgba(var(--color-primary-rgb), 0.05); }
 
         .backup-icon-wrapper {
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem; flex-shrink: 0;
             background-color: rgba(var(--color-primary-rgb), 0.1);
             color: var(--color-primary);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -369,9 +326,9 @@
         <aside id="sidebar" class="sidebar flex -translate-x-full lg:translate-x-0">
             <!-- Sidebar Header -->
             <div class="sidebar-header flex items-center justify-between h-[var(--header-height)] px-6 flex-shrink-0">
-                <!-- INTEGRATION FIX: Root-relative path -->
+                <!-- Logo update: Image + Text -->
                 <a href="/dashboard" class="flex items-center gap-3 text-2xl font-heading font-bold text-primary-600 dark:text-primary-400 no-underline overflow-hidden whitespace-nowrap">
-                    <i class="bi bi-geo-alt-fill flex-shrink-0 text-white bg-primary-600 p-2 rounded-lg"></i>
+                    <img src="/public/assets/images/transp.png" alt="Trace'N Find Logo" class="w-10 h-10 flex-shrink-0 object-contain">
                     <span class="brand-text text-text-primary dark:text-dark-text-primary">Trace'N Find</span>
                 </a>
                 <button id="sidebarToggle" aria-label="Toggle sidebar" class="hidden lg:block text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all text-xl">
@@ -382,7 +339,6 @@
             <!-- Sidebar Navigation -->
             <nav class="sidebar-nav">
                 <ul class="flex flex-col gap-1">
-                    <!-- INTEGRATION FIX: All paths are now root-relative -->
                     <li>
                         <a href="/dashboard" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
                             <i class="bi bi-speedometer2 nav-link-icon text-lg w-8"></i>
@@ -390,8 +346,9 @@
                         </a>
                     </li>
                     <li>
+                        <!-- Icon Update: bi-phone -->
                         <a href="/devices" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-device-phone nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-phone nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">My Devices</span>
                             <span id="sidebarDeviceCount" class="nav-link-text ml-auto px-2 py-0.5 bg-primary-light text-primary-600 dark:bg-primary-900/50 dark:text-primary-300 rounded-full text-xs hidden">0</span>
                         </a>
@@ -403,8 +360,9 @@
                         </a>
                     </li>
                     <li>
+                        <!-- Icon Update: bi-geo-alt-fill -->
                         <a href="/geofencing" class="nav-link flex items-center py-3 px-6 rounded-lg text-text-secondary dark:text-dark-text-secondary font-medium no-underline hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-light dark:hover:bg-dark-bg-card">
-                            <i class="bi bi-geo-fence nav-link-icon text-lg w-8"></i>
+                            <i class="bi bi-geo-alt-fill nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Geofencing</span>
                         </a>
                     </li>
@@ -421,7 +379,7 @@
                         </a>
                     </li>
                      <li>
-                        <!-- This is the active page -->
+                        <!-- Active Page -->
                         <a href="/backup" class="nav-link active flex items-center py-3 px-6 rounded-lg text-primary-600 dark:text-primary-400 bg-primary-light dark:bg-dark-bg-card font-medium no-underline">
                             <i class="bi bi-database-down nav-link-icon text-lg w-8"></i>
                             <span class="nav-link-text">Backup & Restore</span>
@@ -472,7 +430,7 @@
                 <!-- Header Title -->
                 <h1 class="hidden md:block text-2xl font-heading font-bold text-text-primary dark:text-dark-text-primary">Backup & Restore</h1>
                 
-                <!-- Header Actions (Search, Notifications, User) -->
+                <!-- Header Actions -->
                 <div class="flex items-center gap-4 ml-auto">
                     <div class="relative hidden sm:block">
                         <label for="headerSearchInput" class="sr-only">Search</label>
@@ -484,7 +442,7 @@
                         <i class="bi bi-moon-fill"></i>
                     </button>
 
-                    <!-- INTEGRATION FIX: Root-relative path -->
+                    <!-- Notification Badge Added -->
                     <a href="/notifications" aria-label="View notifications" class="relative text-2xl text-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-all">
                         <i class="bi bi-bell"></i>
                         <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
@@ -496,7 +454,6 @@
                         </button>
                         <!-- User Dropdown -->
                         <div id="userMenu" class="hidden absolute top-12 right-0 w-48 bg-bg-card dark:bg-dark-bg-card border border-border-color dark:border-dark-border-color rounded-lg shadow-lg z-10">
-                            <!-- INTEGRATION FIX: Root-relative paths -->
                             <a href="/profile" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Profile</a>
                             <a href="/settings" class="block px-4 py-2 text-sm text-text-primary dark:text-dark-text-primary hover:bg-bg-primary dark:hover:bg-dark-bg-primary no-underline">Settings</a>
                             <button id="logoutButtonUserMenu" class="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-100 dark:hover:bg-red-900/30">Logout</button>
@@ -570,20 +527,16 @@
         </div>
     </div>
 
-    <!-- ======================================================================
-         JAVASCRIPT
-         ====================================================================== -->
-    
     <!-- 
-      CORE APP SCRIPT 
-      INTEGRATION FIX: All paths are now root-relative.
+      ======================================================================
+      JAVASCRIPT
+      ====================================================================== 
     -->
+    
+    <!-- Core Logic -->
     <script src="/app/js/app-shell.js" type="module"></script>
     
-    <!-- 
-      PAGE-SPECIFIC SCRIPT
-      INTEGRATION FIX: All paths are now root-relative.
-    -->
+    <!-- Page Logic -->
     <script src="/app/js/backup-logic.js" type="module"></script>
 
 </body>

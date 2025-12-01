@@ -16,7 +16,10 @@ import {
     getDeviceColor,
     formatDateTime,
     addDoc, 
-    SECURITY_BUTTONS 
+    SECURITY_BUTTONS,
+    // NEW: Imports for notification logic
+    where,
+    onSnapshot
 } from '/app/js/app-shell.js';
 
 // --- Global State ---
@@ -36,6 +39,9 @@ const elements = {
     selectAllCheckbox: document.getElementById('select-all'),
     selectedCount: document.getElementById('selected-count'),
     
+    // Notification Badge
+    notificationBadge: document.getElementById('notificationBadge'),
+
     actionButtons: {
         ring: document.getElementById('action-ring'),
         viewPhotos: document.getElementById('action-view-photos'),
@@ -109,6 +115,35 @@ function init(userId) {
 
     updateSelectionState();
     setupEventListeners(userId);
+    listenForUnreadNotifications(userId);
+}
+
+// --- Notification Logic ---
+function listenForUnreadNotifications(userId) {
+    const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
+    
+    // Query specifically for unread items to get an accurate count
+    const q = query(notifsRef, where("read", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        updateBadgeCount(snapshot.size);
+    }, (error) => {
+        console.error("Error listening for unread count:", error);
+    });
+}
+
+function updateBadgeCount(count) {
+    const badge = elements.notificationBadge;
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+        badge.classList.add('animate-pulse');
+    } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-pulse');
+    }
 }
 
 function setupEventListeners(userId) {
@@ -269,7 +304,7 @@ async function handleSecurityAction(action) {
         'ring': { title: 'Sound Alarm?', message: `Sound an alarm on ${deviceNameDisplay}?`, btn: 'Alarm', type: 'info' },
         'lost': { title: 'Mark as Lost?', message: `Enable tracking and lock ${deviceNameDisplay}?`, btn: 'Mark Lost', type: 'danger' },
         'found': { title: 'Mark as Found?', message: `Restore normal status for ${deviceNameDisplay}?`, btn: 'Mark Found', type: 'success' },
-        'wipe': { title: 'Wipe Devices?', message: `PERMANENTLY erase all data on ${deviceNameDisplay}?`, btn: 'Erase Data', type: 'danger' }
+        'wipe': { title: 'Wipe Devices?', message: `PERMANENTLY erase all data on ${deviceNameDisplay}? This action cannot be undone.`, btn: 'Erase Data', type: 'danger' }
     };
     
     const config = actionMap[action];
@@ -363,6 +398,10 @@ async function executeBatchAction(actionName, dataPayload, count, singleDeviceNa
             title = "Device Recovered";
             message = `${count > 1 ? count + ' devices marked' : singleDeviceName + ' marked'} as Found.`;
             type = "success";
+        } else if (actionName === 'wipe') {
+            title = "Wipe Initiated";
+            message = `Wipe command sent to ${count > 1 ? count + ' devices' : singleDeviceName}.`;
+            type = "danger";
         }
         
         await addDoc(notifRef, {
