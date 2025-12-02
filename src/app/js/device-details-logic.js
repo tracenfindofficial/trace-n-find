@@ -30,6 +30,7 @@ let activityListener = null;
 let map = null;
 let deviceMarker = null;
 let infoWindow = null;
+let bounds = null; // For fitting map bounds if needed
 
 // --- DOM Elements ---
 const elements = {
@@ -46,6 +47,7 @@ const elements = {
     deviceModel: document.getElementById('device-model'),
     deviceStatus: document.getElementById('device-status-badge'),
     deviceLastSeen: document.getElementById('device-last-seen'),
+    liveIndicator: document.getElementById('live-indicator'),
     
     // Quick Stats
     statBattery: document.getElementById('battery-level-text'),
@@ -58,6 +60,7 @@ const elements = {
     
     // Activity
     activityList: document.getElementById('activity-timeline'),
+    // Note: activityEmpty is not needed here as we will render it dynamically
     
     // Info
     infoOS: document.getElementById('device-os'),
@@ -66,7 +69,7 @@ const elements = {
     infoCarrier: document.getElementById('device-carrier'),
     infoMAC: document.getElementById('device-mac'),
     
-    // Charts
+    // Charts (Placeholders for future implementation)
     batteryChart: document.getElementById('battery-chart'),
     networkChart: document.getElementById('network-chart'),
     storageChart: document.getElementById('storage-chart'),
@@ -77,8 +80,8 @@ const elements = {
 
 function waitForAuth(callback) {
     const check = () => {
-        // Check for Google Maps global instead of Leaflet
-        if (window.currentUserId && window.librariesLoaded && typeof google !== 'undefined' && typeof Chart !== 'undefined' && mapStyles) {
+        // Check for Google Maps global and currentUserId
+        if (window.currentUserId && window.librariesLoaded && typeof google !== 'undefined' && mapStyles) {
             callback(window.currentUserId);
         } else {
             requestAnimationFrame(check);
@@ -94,30 +97,42 @@ waitForAuth((userId) => {
     if (currentDeviceId) {
         console.log(`Initializing details for device: ${currentDeviceId}`);
         initPage(userId, currentDeviceId);
-        // Start listening for notifications
+        // Start listening for notifications (Badge count)
         listenForUnreadNotifications(userId);
     } else {
+        // Redirect if no ID provided
         window.location.href = '/app/devices.html';
     }
 });
 
 function initPage(userId, deviceId) {
     initMap();
-    initCharts();
+    // initCharts(); // Placeholder for chart logic
     
     listenForDeviceData(userId, deviceId);
     listenForActivityData(userId, deviceId);
 }
 
-// --- Notification Logic ---
+// --- Notification Logic (Deduplicated Badge Count) ---
+
 function listenForUnreadNotifications(userId) {
     const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
     
-    // Query specifically for unread items to get an accurate count
+    // Query only unread items. We DO NOT use orderBy here to avoid needing a composite index (read + timestamp).
+    // We will sort and deduplicate client-side.
     const q = query(notifsRef, where("read", "==", false));
 
     onSnapshot(q, (snapshot) => {
-        updateBadgeCount(snapshot.size);
+        const rawUnread = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // 1. Sort by timestamp descending (newest first) to ensure consistent deduplication
+        rawUnread.sort((a, b) => getTimestampMs(b) - getTimestampMs(a));
+
+        // 2. Deduplicate
+        const uniqueUnread = getUniqueNotifications(rawUnread);
+
+        // 3. Update Badge
+        updateBadgeCount(uniqueUnread.length);
     }, (error) => {
         console.error("Error listening for unread count:", error);
     });
@@ -131,12 +146,54 @@ function updateBadgeCount(count) {
         badge.textContent = count > 99 ? '99+' : count;
         badge.classList.remove('hidden');
         badge.classList.add('animate-pulse');
+        document.title = `(${count}) ${elements.deviceName.textContent} - Trace'N Find`;
     } else {
         badge.classList.add('hidden');
         badge.classList.remove('animate-pulse');
+        document.title = `${elements.deviceName.textContent || 'Device Details'} - Trace'N Find`;
     }
 }
 
+// Helper: Get unique notifications (Logic copied from notifications-logic.js)
+function getUniqueNotifications(notifications) {
+    const unique = [];
+    const seenSignatures = new Map(); // key: "type|title|msg", value: timestamp
+
+    notifications.forEach(notification => {
+        const timeMs = getTimestampMs(notification);
+        // Signature defines "sameness"
+        const signature = `${notification.type}|${notification.title}|${notification.message}`;
+        
+        if (seenSignatures.has(signature)) {
+            const lastTime = seenSignatures.get(signature);
+            const timeDiff = Math.abs(timeMs - lastTime);
+            
+            // If the same message appears within 10 seconds, treat it as a duplicate
+            if (timeDiff < 10000) { 
+                return; // Skip this one (it's a duplicate)
+            }
+        }
+
+        // It's unique (or significantly later), so keep it
+        seenSignatures.set(signature, timeMs);
+        unique.push(notification);
+    });
+
+    return unique;
+}
+
+// Helper: robust timestamp extraction
+function getTimestampMs(notification) {
+    if (notification.timestamp && typeof notification.timestamp.toMillis === 'function') {
+        return notification.timestamp.toMillis();
+    } else if (notification.time) {
+        const d = new Date(notification.time);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+    return 0;
+}
+
+// --- Device Data Logic ---
 function listenForDeviceData(userId, deviceId) {
     const deviceRef = doc(fbDB, 'user_data', userId, 'devices', deviceId);
 
@@ -146,19 +203,31 @@ function listenForDeviceData(userId, deviceId) {
             updateUI(deviceData);
         } else {
             showToast('Error', 'Device not found.', 'error');
+            setTimeout(() => window.location.href = '/app/devices.html', 2000);
         }
     });
 }
 
+// --- Activity Logic (Functional & Robust) ---
 function listenForActivityData(userId, deviceId) {
-    const activityRef = collection(fbDB, 'user_data', userId, 'devices', deviceId, 'activity');
-    
-    // Order by 'timestamp' to match the new data format used in Notifications/Dashboard
-    const q = query(activityRef, orderBy('timestamp', 'desc'), limit(10));
+    const notificationsRef = collection(fbDB, 'user_data', userId, 'notifications');
+
+    // FIX: Filter inside the query so we get 50 items specifically for THIS device
+    const q = query(
+        notificationsRef, 
+        where("deviceId", "==", deviceId), // Ensure your DB field is exactly "deviceId"
+        orderBy('timestamp', 'desc'), 
+        limit(50)
+    );
 
     activityListener = onSnapshot(q, (snapshot) => {
-        const activities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderActivityList(activities);
+        const deviceActivities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderActivityList(deviceActivities);
+    }, (error) => {
+        console.error("Activity Query Error:", error);
+        
+        // IMPORTANT: If you see this in the console, click the link provided 
+        // by Firebase to create the Composite Index.
     });
 }
 
@@ -168,32 +237,53 @@ function updateUI(device) {
     // 1. SAFETY: Create safe nested objects if they are missing
     const info = device.info || {};
     const sim = device.sim || {};
-    const security = device.security || {}; // Added security object check
+    const security = device.security || {}; 
+    const location = device.location || {};
     
     // 2. Update Header Info
-    elements.headerName.textContent = device.name || 'Unknown Device';
-    elements.deviceName.textContent = device.name || 'Unknown Device';
+    const devName = device.name || device.model || 'Unknown Device';
+    elements.headerName.textContent = devName;
+    elements.deviceName.textContent = devName;
     elements.deviceModel.textContent = device.model || info.model || 'Unknown Model';
     
     // Status Color & Icon
     const statusColor = getDeviceColor(device.status);
-    elements.deviceIcon.style.backgroundColor = `${statusColor}20`; 
+    elements.deviceIcon.style.backgroundColor = `${statusColor}20`; // 20 = roughly 12% opacity
     elements.deviceIcon.style.color = statusColor;
     elements.deviceIcon.innerHTML = `<i class="bi ${getDeviceIcon(device.type || info.type)}"></i>`;
 
     // Status Badge
     elements.deviceStatus.textContent = device.status || 'Offline';
+    elements.deviceStatus.style.borderColor = statusColor;
     elements.deviceStatus.style.color = statusColor;
-    elements.deviceStatus.className = `text-sm font-semibold uppercase px-3 py-1 rounded-full border border-current`;
+    elements.deviceStatus.className = `text-sm font-semibold uppercase px-3 py-1 rounded-full border border-current bg-[${statusColor}10]`; // Tinted bg
 
-    // Last Seen
-    elements.deviceLastSeen.textContent = formatTimeAgo(device.lastSeen || device.last_updated);
+    // Last Seen / Live Indicator
+    const timeAgo = formatTimeAgo(device.lastSeen || device.last_updated);
+    elements.deviceLastSeen.textContent = timeAgo;
+
+    // Show "Live" indicator if online and updated recently (within 2 mins)
+    const isOnline = (device.status === 'online' || device.status === 'active');
+    // Simple check: if string implies seconds/minutes ago or "Just now"
+    const isRecent = timeAgo.includes('Just now') || timeAgo.includes('sec') || (timeAgo.includes('min') && parseInt(timeAgo) < 5);
+    
+    if (isOnline && isRecent && elements.liveIndicator) {
+        elements.liveIndicator.classList.remove('hidden');
+        elements.liveIndicator.classList.add('flex');
+    } else if (elements.liveIndicator) {
+        elements.liveIndicator.classList.add('hidden');
+        elements.liveIndicator.classList.remove('flex');
+    }
     
     // 3. Stats (Battery, Storage, Network, Signal)
     
     // Battery
     const battLevel = device.battery ?? device.battery_level ?? 0;
     elements.statBattery.textContent = `${battLevel}%`;
+    // Add color to battery text based on level
+    if (battLevel < 20) elements.statBattery.className = "font-bold text-xl text-danger-500";
+    else if (battLevel < 50) elements.statBattery.className = "font-bold text-xl text-warning-500";
+    else elements.statBattery.className = "font-bold text-xl text-success-500";
     
     // Storage
     elements.statStorage.textContent = device.storage || 'N/A';
@@ -201,11 +291,9 @@ function updateUI(device) {
     // Network (Fallback to 'network' if 'network_display' is missing)
     elements.statNetwork.textContent = device.network_display || device.network || 'N/A';
     
-    // Signal (Use ?? to allow 0 as a valid value)
+    // Signal
     const signalRaw = device.signal_strength ?? device.signal ?? device.signal_level;
-    
     if (signalRaw !== undefined && signalRaw !== null) {
-        // Clean the value: Remove "dBm" or spaces if they already exist
         const signalClean = String(signalRaw).replace(/\s?dBm/gi, '').trim();
         elements.statSignal.textContent = `${signalClean} dBm`;
     } else {
@@ -224,15 +312,11 @@ function updateUI(device) {
     const carrierName = sim.carrier || device.carrier || 'Unknown Carrier';
     elements.infoCarrier.textContent = carrierName;
     
-    // UPDATED: Carrier Status with ROBUST FALLBACKS
-    // 1. Check your requested field (sim_status)
-    // 2. Check security object (security.sim_status) - used by app-shell.js
-    // 3. Check sim object (sim.status) - legacy format
+    // Carrier Status
     const simStatus = device.sim_status || security.sim_status || sim.status || 'Unknown';
     elements.infoCarrierStatus.textContent = simStatus;
     
-    // Color coding for Carrier Status
-    elements.infoCarrierStatus.className = 'font-medium'; // Reset classes
+    elements.infoCarrierStatus.className = 'font-medium';
     const safeStatus = String(simStatus).toLowerCase();
     
     if (['active', 'online', 'ready', 'inserted'].includes(safeStatus)) {
@@ -242,32 +326,64 @@ function updateUI(device) {
     }
 
     // 5. Reveal Content
-    elements.loader.style.display = 'none';
-    elements.content.classList.remove('hidden');
-    elements.content.classList.add('animate-fade-in');
-    elements.content.style.opacity = '1'; 
+    if (elements.loader) elements.loader.style.display = 'none';
+    if (elements.content) {
+        elements.content.classList.remove('hidden');
+        elements.content.classList.add('animate-fade-in');
+    }
 
-    // Update Map & Charts
+    // Update Map
     updateMapMarker(device);
-    updateCharts(device);
 }
 
 function renderActivityList(activities) {
+    if (!elements.activityList) return;
+    
+    // CLEAR EVERYTHING first
     elements.activityList.innerHTML = '';
-    if (activities.length === 0) {
-        elements.activityList.innerHTML = '<li class="p-4 text-center text-text-secondary dark:text-dark-text-secondary">No recent activity.</li>';
+    
+    // Handle Empty State by Injecting HTML directly
+    if (!activities || activities.length === 0) {
+        // We inject this directly. Note 'animation-fade-in' class to ensure visibility.
+        // We use 'bg-primary-50' as a safe light background.
+        elements.activityList.innerHTML = `
+            <div id="activity-empty" class="text-center p-6 animation-fade-in">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 dark:bg-primary-900/20 mb-4">
+                    <i class="bi bi-clock-history text-3xl text-text-secondary dark:text-dark-text-secondary opacity-70"></i>
+                </div>
+                <h3 class="text-base font-medium text-text-primary dark:text-dark-text-primary">No recent activity</h3>
+                <p class="mt-1 text-sm text-text-secondary dark:text-dark-text-secondary">Notifications for this device will appear here.</p>
+            </div>
+        `;
         return;
     }
     
+    // Render Items
     activities.forEach(activity => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center gap-3 p-4 border-b border-border-color dark:border-dark-border-color';
+        const li = document.createElement('div');
+        li.className = 'flex gap-4 p-4 rounded-xl hover:bg-bg-primary dark:hover:bg-dark-bg-primary transition-colors border border-transparent hover:border-border-color dark:hover:border-dark-border-color animation-fade-in';
         
-        let icon = 'bi-info-circle-fill text-info';
-        if (activity.type === 'security') icon = 'bi-shield-lock-fill text-danger';
-        if (activity.type === 'warning') icon = 'bi-exclamation-triangle-fill text-warning';
-        if (activity.type === 'lost-mode') icon = 'bi-exclamation-diamond-fill text-danger';
+        // Determine Icon and Color Style based on type
+        let icon = 'bi-info-circle-fill';
+        let bgClass = 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400';
         
+        const type = (activity.type || 'info').toLowerCase();
+        
+        if (type.includes('security') || type.includes('alert') || type.includes('danger')) {
+            icon = 'bi-shield-exclamation';
+            bgClass = 'bg-danger-100 text-danger-600 dark:bg-danger-900/30 dark:text-danger-400';
+        } else if (type.includes('warning') || type.includes('battery')) {
+            icon = 'bi-exclamation-triangle-fill';
+            bgClass = 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400';
+        } else if (type.includes('lost') || type.includes('location')) {
+            icon = 'bi-geo-alt-fill';
+            bgClass = 'bg-info-100 text-info-600 dark:bg-info-900/30 dark:text-info-400';
+        } else if (type.includes('success') || type.includes('found')) {
+            icon = 'bi-check-circle-fill';
+            bgClass = 'bg-success-100 text-success-600 dark:bg-success-900/30 dark:text-success-400';
+        }
+        
+        // Time formatting
         let timeVal = activity.timestamp || activity.time;
         let timeAgo = 'Just now';
         
@@ -279,14 +395,25 @@ function renderActivityList(activities) {
              } else if (typeof timeVal === 'string') {
                  const d = new Date(timeVal);
                  if(!isNaN(d)) timeAgo = formatTimeAgo(d);
+             } else if (typeof timeVal === 'number') {
+                 timeAgo = formatTimeAgo(new Date(timeVal));
              }
         }
 
         li.innerHTML = `
-            <i class="bi ${icon} text-2xl"></i>
-            <div class="flex-1">
-                <p class="font-medium text-text-primary dark:text-dark-text-primary">${sanitizeHTML(activity.message)}</p>
-                <p class="text-sm text-text-secondary dark:text-dark-text-secondary">${timeAgo}</p>
+            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${bgClass}">
+                <i class="bi ${icon} text-lg"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-semibold text-sm text-text-primary dark:text-dark-text-primary truncate">
+                    ${sanitizeHTML(activity.title || 'Notification')}
+                </p>
+                <p class="text-sm text-text-secondary dark:text-dark-text-secondary line-clamp-2">
+                    ${sanitizeHTML(activity.message || activity.body || 'No details provided.')}
+                </p>
+                <p class="text-xs text-text-secondary dark:text-dark-text-secondary mt-1 opacity-70">
+                    <i class="bi bi-clock"></i> ${timeAgo}
+                </p>
             </div>
         `;
         elements.activityList.appendChild(li);
@@ -301,15 +428,19 @@ function initMap() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const styles = (currentTheme === 'dark') ? mapStyles.dark : mapStyles.light;
 
+    // Default center (Malaysia/GMI)
+    const defaultCenter = { lat: 2.9436, lng: 101.7949 };
+
     map = new google.maps.Map(elements.mapContainer, {
-        center: { lat: 2.9436, lng: 101.7949 }, // Default: GMI, Kajang
+        center: defaultCenter,
         zoom: 13,
         disableDefaultUI: true,
         zoomControl: true,
-        styles: styles
+        styles: styles,
+        mapTypeId: 'roadmap'
     });
 
-    // Initialize InfoWindow
+    bounds = new google.maps.LatLngBounds();
     infoWindow = new google.maps.InfoWindow();
 
     // Handle Theme Changes
@@ -326,7 +457,6 @@ function updateMapMarker(device) {
 
     let lat, lng;
     
-
     // Robust coordinate parsing
     if (device.location) {
         if (device.location.lat !== undefined) lat = parseFloat(device.location.lat);
@@ -339,32 +469,35 @@ function updateMapMarker(device) {
     let isValid = (typeof lat === 'number' && !isNaN(lat) && typeof lng === 'number' && !isNaN(lng));
     
     if (!isValid) {
-        // Keep map centered on default if no valid location
+        // If device has no valid location, stay at default or previous center
         return;
     }
 
     const position = { lat, lng };
 
-    // If marker doesn't exist, create it
     // --- 1. PREPARE ICON ---
     const colorMap = {
-        online: "#10b981", found: "#10b981",
-        offline: "#ef4444", lost: "#ef4444",
-        warning: "#f59e0b"
+        online: "#10b981", found: "#10b981", active: "#10b981",
+        offline: "#64748b", inactive: "#64748b",
+        warning: "#f59e0b",
+        lost: "#ef4444", stolen: "#ef4444"
     };
-    const pinColor = colorMap[device.status] || "#64748b";
+    // Default to primary color if status unknown
+    const pinColor = colorMap[device.status?.toLowerCase()] || "#4361ee"; 
 
+    // Custom SVG Marker
     const svgIcon = `
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 80 80">
-            ${ (device.status !== 'offline') ? `
-            <circle cx="40" cy="40" r="18" fill="#4361ee" stroke="#4361ee" stroke-width="2" opacity="0.6">
+            ${ (device.status === 'online' || device.status === 'active' || device.status === 'lost') ? `
+            <circle cx="40" cy="40" r="18" fill="${pinColor}" fill-opacity="0.3">
                 <animate attributeName="r" from="18" to="40" dur="1.5s" repeatCount="indefinite" />
-                <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" repeatCount="indefinite" />
+                <animate attributeName="opacity" from="0.6" to="0" dur="1.5s" repeatCount="indefinite" />
             </circle>
             ` : '' }
             <circle cx="40" cy="40" r="18" fill="${pinColor}" stroke="white" stroke-width="3" />
-            <g transform="translate(28, 28)">
-                <path fill="white" d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+            <!-- Smartphone Icon Center -->
+            <g transform="translate(28, 28) scale(0.9)">
+                 <path fill="white" d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
             </g>
         </svg>`;
 
@@ -382,51 +515,41 @@ function updateMapMarker(device) {
             map: map,
             title: device.name,
             icon: iconConfig,
-            optimized: false
+            optimized: false // Required for SVG animations in some browsers
         });
 
+        // Initial Pan
         map.panTo(position);
 
         // Add click listener for InfoWindow
         deviceMarker.addListener('click', () => {
             const content = `
-                <div style="color:black">
-                    <b>${sanitizeHTML(device.name)}</b><br>
-                    Last seen: ${formatTimeAgo(device.lastSeen)}
+                <div class="text-gray-800 p-1">
+                    <h3 class="font-bold text-sm">${sanitizeHTML(device.name)}</h3>
+                    <p class="text-xs mt-1">Status: <span style="color:${pinColor}" class="font-semibold uppercase">${device.status}</span></p>
+                    <p class="text-xs text-gray-500 mt-1">Last seen: ${formatTimeAgo(device.lastSeen || device.last_updated)}</p>
                 </div>
             `;
             infoWindow.setContent(content);
             infoWindow.open(map, deviceMarker);
         });
     } else {
-        // UPDATE EXISTING
+        // Update Icon
         deviceMarker.setIcon(iconConfig);
         
-        // REPLACE setPosition WITH ANIMATION
+        // Animate Movement
         animateMarkerTo(deviceMarker, position);
-
-        map.panTo(position);
-
-        // If info window is open, update content
+        
+        // Update InfoWindow content if open
         if (infoWindow.getMap()) {
              const content = `
-                <div style="color:black">
-                    <b>${sanitizeHTML(device.name)}</b><br>
-                    Last seen: ${formatTimeAgo(device.lastSeen)}
+                <div class="text-gray-800 p-1">
+                    <h3 class="font-bold text-sm">${sanitizeHTML(device.name)}</h3>
+                    <p class="text-xs mt-1">Status: <span style="color:${pinColor}" class="font-semibold uppercase">${device.status}</span></p>
+                    <p class="text-xs text-gray-500 mt-1">Last seen: ${formatTimeAgo(device.lastSeen || device.last_updated)}</p>
                 </div>
             `;
             infoWindow.setContent(content);
         }
     }
-
-    // Smoothly pan to new location
-    // map.panTo(position);
-    map.setZoom(16);
-}
-
-function initCharts() {
-    // Chart.js logic would go here if needed
-}
-function updateCharts(device) {
-    // Update charts with live data if needed
 }

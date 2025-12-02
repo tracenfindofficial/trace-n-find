@@ -7,12 +7,11 @@ import {
     onSnapshot, 
     query,
     doc,
-    getDocs, // Added getDocs
+    getDocs,
     getDoc, 
     addDoc,
     deleteDoc,
     setDoc, 
-    updateDoc, 
     writeBatch,
     serverTimestamp,
     orderBy,
@@ -28,8 +27,6 @@ let backupListener = null;
 // --- DOM Elements ---
 const elements = {
     createBackupBtn: document.getElementById('create-backup-btn'),
-    uploadBackupLabel: document.getElementById('upload-backup-label'),
-    uploadBackupInput: document.getElementById('upload-backup-input'),
     backupList: document.getElementById('backup-list'),
     backupListEmpty: document.getElementById('backup-list-empty'),
     backupScopeSelect: document.getElementById('backupScope'),
@@ -55,16 +52,12 @@ function waitForAuth(callback) {
 waitForAuth((userId) => {
     setupEventListeners(userId);
     listenForBackups(userId);
-    populateBackupOptions(userId); // Load devices into dropdown
+    populateBackupOptions(userId); 
 });
 
 function setupEventListeners(userId) {
     if (elements.createBackupBtn) {
         elements.createBackupBtn.addEventListener('click', () => createBackup(userId));
-    }
-    
-    if (elements.uploadBackupInput) {
-        elements.uploadBackupInput.addEventListener('change', (e) => handleRestoreUpload(e, userId));
     }
 
     // Event delegation for list buttons
@@ -94,7 +87,7 @@ async function populateBackupOptions(userId) {
         const devicesRef = collection(fbDB, 'user_data', userId, 'devices');
         const snapshot = await getDocs(devicesRef);
         
-        elements.deviceOptionsGroup.innerHTML = ''; // Clear loading text
+        elements.deviceOptionsGroup.innerHTML = ''; 
         
         if (snapshot.empty) {
             const opt = document.createElement('option');
@@ -107,8 +100,7 @@ async function populateBackupOptions(userId) {
         snapshot.forEach(doc => {
             const data = doc.data();
             const option = document.createElement('option');
-            option.value = doc.id; // Value is the device ID
-            // Display: "Brand Model (Nickname)" or just "Device ID"
+            option.value = doc.id; 
             const name = data.nickname || data.model || `Device ${doc.id.substring(0, 6)}`;
             option.textContent = name;
             elements.deviceOptionsGroup.appendChild(option);
@@ -159,26 +151,24 @@ function renderBackupList() {
         
         const backupDate = backup.createdAt?.toDate() ? backup.createdAt.toDate().toLocaleString() : 'Just now';
         
-        // Data indicators
         const hasProfile = backup.hasProfile;
+        const contactCount = backup.contactCount || 0; // New count
         const type = backup.type || 'full'; 
         
         let detailsText = "";
         let iconClass = "bi-hdd-network"; 
 
         if (type === 'contact_only') {
-            detailsText = `<span class="text-success font-medium"><i class="bi bi-person-check-fill"></i> Contact Information Only</span>`;
+            detailsText = `<span class="text-success font-medium"><i class="bi bi-person-lines-fill"></i> ${contactCount} Contacts & Profile</span>`;
             iconClass = "bi-person-rolodex";
         } else if (type === 'single_device') {
-             // Single Device Backup
              const deviceName = backup.deviceName || 'Unknown Device';
              detailsText = `<span class="text-primary font-medium"><i class="bi bi-phone"></i> ${deviceName}</span>`;
              iconClass = "bi-phone";
         } else {
-            // Full Backup
             const deviceCount = backup.deviceCount || 0;
             const geofenceCount = backup.geofenceCount || 0;
-            detailsText = `<span class="text-text-secondary">${deviceCount} devices, ${geofenceCount} geofences</span>`;
+            detailsText = `<span class="text-text-secondary">${deviceCount} devices, ${geofenceCount} geofences, ${contactCount} contacts</span>`;
             if (hasProfile) detailsText += ` <span class="text-success text-xs mx-1">• Profile</span>`;
         }
 
@@ -214,34 +204,43 @@ function renderBackupList() {
 async function createBackup(userId) {
     setLoadingState(elements.createBackupBtn, true);
     
-    // Determine Scope
     const scope = elements.backupScopeSelect.value;
     
     try {
         let backupData = {};
         let backupMeta = {
             createdAt: serverTimestamp(),
-            type: 'full', // default
+            type: 'full', 
             deviceCount: 0,
             geofenceCount: 0,
+            contactCount: 0, // Metadata for contacts
             hasProfile: false,
             deviceName: null,
             data: ''
         };
 
-        // --- 1. CONTACTS / PROFILE ---
+        // --- 1. PROFILE & CONTACTS ---
         if (scope === 'full' || scope === 'contacts') {
+             // A. Profile Settings
              const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
              const profileSnap = await getDoc(profileRef);
              if (profileSnap.exists()) {
                  backupData.profile = profileSnap.data();
                  backupMeta.hasProfile = true;
              }
+
+             // B. Contacts Collection (NEW ADDITION)
+             // Backs up 'user_data/{uid}/contacts'
+             const contactsRef = collection(fbDB, 'user_data', userId, 'contacts');
+             const contactsSnap = await getDocs(contactsRef);
+             if (!contactsSnap.empty) {
+                 backupData.contactsList = contactsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                 backupMeta.contactCount = backupData.contactsList.length;
+             }
         }
 
         // --- 2. SINGLE DEVICE ---
         if (scope !== 'full' && scope !== 'contacts') {
-            // Scope is a deviceId
             const deviceId = scope;
             const deviceRef = doc(fbDB, 'user_data', userId, 'devices', deviceId);
             const deviceSnap = await getDoc(deviceRef);
@@ -251,9 +250,6 @@ async function createBackup(userId) {
             }
 
             const deviceData = { id: deviceSnap.id, ...deviceSnap.data() };
-            // Ensure we capture everything including contact lists if they are fields in the doc
-            
-            // Structure it as an array of 1 for consistency or a specific single object
             backupData.devices = [deviceData];
             
             backupMeta.type = 'single_device';
@@ -261,29 +257,21 @@ async function createBackup(userId) {
             backupMeta.deviceName = deviceData.nickname || deviceData.model || deviceId;
         }
 
-        // --- 3. FULL BACKUP (ALL DEVICES & GEOFENCES) ---
+        // --- 3. FULL BACKUP ---
         if (scope === 'full') {
-             // Fetch All Devices
             const devicesRef = collection(fbDB, 'user_data', userId, 'devices');
             const devicesSnap = await getDocs(devicesRef);
             backupData.devices = devicesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
             backupMeta.deviceCount = backupData.devices.length;
 
-            // Fetch All Geofences
             const geofencesRef = collection(fbDB, 'user_data', userId, 'geofences');
             const geoSnap = await getDocs(geofencesRef);
             backupData.geofences = geoSnap.docs.map(d => ({ id: d.id, ...d.data() }));
             backupMeta.geofenceCount = backupData.geofences.length;
         }
         
-        // Handle Contacts Only Type
         if (scope === 'contacts') {
             backupMeta.type = 'contact_only';
-            // Mimic the nested structure requested previously if needed, OR keep standard flat structure.
-            // Keeping standard flat structure is safer for "restore logic" reusability, 
-            // but to support the previous specific request:
-            if (!backupData.devices) backupData.devices = {}; 
-            // If contact only, we rely on backupData.profile
         }
 
         // --- SERIALIZE & SAVE ---
@@ -292,7 +280,6 @@ async function createBackup(userId) {
         const backupsRef = collection(fbDB, 'user_data', userId, 'backups');
         await addDoc(backupsRef, backupMeta);
 
-        // Update Profile Status (Optional, good for tracking)
         const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
         await setDoc(profileRef, { 
             pending_action: 'backup_complete',
@@ -309,42 +296,6 @@ async function createBackup(userId) {
     }
 }
 
-function handleRestoreUpload(e, userId) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.type !== 'application/json') {
-        showToast('Error', 'Invalid file type. Please upload a .json file.', 'error');
-        return;
-    }
-
-    setLoadingState(elements.uploadBackupLabel, true, true);
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            const backupData = JSON.parse(event.target.result);
-            
-            // Basic validation
-            let isValid = false;
-            if (backupData.profile || (backupData.devices && Array.isArray(backupData.devices))) isValid = true;
-            // Check for previous nested structure
-            if (backupData.devices && typeof backupData.devices === 'object' && !Array.isArray(backupData.devices)) isValid = true;
-
-            if (!isValid) {
-                throw new Error("Invalid backup file format.");
-            }
-            confirmRestore(backupData, userId, elements.uploadBackupLabel);
-        } catch (error) {
-            console.error("Error parsing backup file:", error);
-            showToast('Error', 'Invalid or corrupt backup file.', 'error');
-            setLoadingState(elements.uploadBackupLabel, false, true);
-        }
-    };
-    reader.readAsText(file);
-    e.target.value = null;
-}
-
 function handleRestore(backupId, userId) {
     const backup = allBackups.find(b => b.id === backupId);
     if (!backup) {
@@ -354,7 +305,6 @@ function handleRestore(backupId, userId) {
 
     try {
         const backupData = JSON.parse(backup.data);
-        // Pass backup type to help confirmation message
         confirmRestore(backupData, userId, null, backup.type, backup.deviceName);
     } catch (error) {
         console.error("Error parsing backup data:", error);
@@ -365,17 +315,13 @@ function handleRestore(backupId, userId) {
 function confirmRestore(backupData, userId, buttonToReset = null, backupType = 'full', deviceName = '') {
     // --- PARSE DATA ---
     let contactInfo = backupData.profile || null;
-    let devicesToRestore = [];
+    let contactsList = backupData.contactsList || []; // Restore list
+    let devicesToRestore = backupData.devices || [];
     let geofencesToRestore = backupData.geofences || [];
 
-    // Handle Array of devices (Standard)
-    if (Array.isArray(backupData.devices)) {
-        devicesToRestore = backupData.devices;
-    } 
-    // Handle Nested Object (Previous Request Format) - fallback logic
-    else if (backupData.devices && typeof backupData.devices === 'object') {
-         // Attempt to extract from nested structure if present
-         if (backupData.devices[userId] && backupData.devices[userId].backup && backupData.devices[userId].backup.contacts) {
+    // Fallback for older backups or different formats
+    if (!Array.isArray(devicesToRestore) && backupData.devices && typeof backupData.devices === 'object') {
+         if (backupData.devices[userId]?.backup?.contacts) {
              contactInfo = backupData.devices[userId].backup.contacts;
          }
     }
@@ -385,15 +331,14 @@ function confirmRestore(backupData, userId, buttonToReset = null, backupType = '
     let msg = "Are you sure you want to restore this data?";
     
     if (backupType === 'contact_only') {
-        title = "Restore Contact Info?";
-        msg = "Are you sure you want to restore your <strong>Contact Information</strong>?";
+        title = "Restore Contacts?";
+        msg = `Are you sure you want to restore <strong>${contactsList.length} contacts</strong> and profile settings?`;
     } else if (backupType === 'single_device') {
         title = `Restore ${deviceName}?`;
         msg = `Are you sure you want to restore data for <strong>${deviceName}</strong>? <br>Current data for this specific device will be overwritten.`;
     } else {
-        // Full Backup
         title = "Restore Full Account?";
-        msg = `This will overwrite <strong>${devicesToRestore.length} devices</strong> and <strong>${geofencesToRestore.length} geofences</strong>. <br><span class="text-warning">Warning: Current data will be replaced.</span>`;
+        msg = `This will overwrite <strong>${devicesToRestore.length} devices</strong>, <strong>${geofencesToRestore.length} geofences</strong>, and <strong>${contactsList.length} contacts</strong>.`;
     }
 
     showModal(
@@ -408,14 +353,25 @@ function confirmRestore(backupData, userId, buttonToReset = null, backupType = '
                 const batch = writeBatch(fbDB);
                 let opCount = 0;
                 
-                // 1. Restore Profile / Contacts
+                // 1. Restore Profile Settings
                 if (contactInfo) {
                     const profileRef = doc(fbDB, 'user_data', userId, 'profile', 'settings');
                     batch.set(profileRef, contactInfo, { merge: true });
                     opCount++;
                 }
 
-                // 2. Restore Devices
+                // 2. Restore Contacts List (NEW)
+                if (contactsList.length > 0) {
+                    contactsList.forEach(contact => {
+                        if(contact.id) {
+                            const docRef = doc(fbDB, 'user_data', userId, 'contacts', contact.id);
+                            batch.set(docRef, contact);
+                            opCount++;
+                        }
+                    });
+                }
+
+                // 3. Restore Devices
                 if (devicesToRestore.length > 0) {
                     devicesToRestore.forEach(device => {
                         if(device.id) {
@@ -426,7 +382,7 @@ function confirmRestore(backupData, userId, buttonToReset = null, backupType = '
                     });
                 }
 
-                // 3. Restore Geofences
+                // 4. Restore Geofences
                 if (geofencesToRestore.length > 0) {
                     geofencesToRestore.forEach(geofence => {
                         if(geofence.id) {
@@ -490,9 +446,6 @@ function handleDownload(backupId) {
     }
 }
 
-/**
- * Deletes a backup from the history.
- */
 function handleDelete(backupId, userId) {
     showModal(
         'Delete Snapshot?',

@@ -315,17 +315,6 @@ async function handleSaveProfile(e) {
 async function handleEnableMFA() {
     if (!currentUser) return;
     
-    const lastSignInTime = new Date(currentUser.metadata.lastSignInTime).getTime();
-    const fiveMinutes = 5 * 60 * 1000;
-    if (Date.now() - lastSignInTime > fiveMinutes) {
-        showToast('Security Update', 'Please log in again to enable 2FA.', 'warning');
-        setTimeout(async () => {
-            await signOut(auth);
-            window.location.replace('/public/auth/login.html');
-        }, 2000);
-        return;
-    }
-
     const phoneNumber = elements.phoneInput ? elements.phoneInput.value.trim() : '';
     if (!phoneNumber) {
         showToast("Error", "Please enter your phone number first.", "error");
@@ -334,17 +323,13 @@ async function handleEnableMFA() {
     }
 
     try {
-        // 2. Clear existing verifier to prevent "already rendered" error
+        // 1. Ensure no lingering verifier exists
         if (window.recaptchaVerifier) {
-            try { 
-                window.recaptchaVerifier.clear(); 
-            } catch(e) { 
-                console.log("Verifier clear warning", e); 
-            }
+            try { window.recaptchaVerifier.clear(); } catch(e) { console.log("Verifier clear warning", e); }
             window.recaptchaVerifier = null;
         }
 
-        // 3. Ensure Container Exists
+        // 2. Verify Container
         const container = document.getElementById('recaptcha-container-profile');
         if (!container) {
             console.error("CRITICAL: #recaptcha-container-profile missing in HTML.");
@@ -352,8 +337,7 @@ async function handleEnableMFA() {
             return;
         }
 
-        // 4. Initialize Invisible Recaptcha
-        // NOTE: We use 'auth' here, which uses the DEFAULT Firebase key, not your custom RECAPTCHA_SITE_KEY.
+        // 3. Initialize Invisible Recaptcha
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
             'size': 'invisible',
             'callback': (response) => {
@@ -364,15 +348,26 @@ async function handleEnableMFA() {
             }
         });
 
-        showToast("Info", "Sending verification code...", "info");
+        showToast("Info", "Preparing security session...", "info");
         const multiFactorSession = await multiFactor(currentUser).getSession();
 
+        showToast("Info", "Sending verification code...", "info");
         const phoneOptions = {
             phoneNumber: phoneNumber,
             session: multiFactorSession
         };
-
-        const verificationId = await new PhoneAuthProvider(auth).verifyPhoneNumber(phoneOptions, window.recaptchaVerifier);
+        
+        // 4. Send SMS with Specific Error Handling for Key Mismatch
+        let verificationId;
+        try {
+             verificationId = await new PhoneAuthProvider(auth).verifyPhoneNumber(phoneOptions, window.recaptchaVerifier);
+        } catch (innerError) {
+            if (innerError.message && innerError.message.includes('Invalid site key')) {
+                console.error("CRITICAL SITE KEY ERROR: The key loaded in HTML (script tag) does not match the key Firebase expects.");
+                throw new Error("Configuration Error: reCAPTCHA Site Key mismatch. Please clear browser cache or check Firebase Console settings.");
+            }
+            throw innerError;
+        }
 
         // 5. Show OTP Modal
         showOtpModal(async (code) => {
@@ -382,7 +377,6 @@ async function handleEnableMFA() {
                 
                 await multiFactor(currentUser).enroll(assertion, "My Phone Number");
                 
-                // Update Firestore status
                  try {
                      const userRef = doc(db, 'user_data', currentUser.uid, 'profile', 'settings');
                      await setDoc(userRef, { mfa_enabled: true }, { merge: true });
@@ -391,8 +385,7 @@ async function handleEnableMFA() {
                 showToast('Success', 'MFA Enabled Successfully!', 'success');
                 hideOtpModal();
                 await currentUser.reload(); 
-                // Reload page to reflect UI changes cleanly
-                window.location.reload(); 
+                loadUserProfile(currentUser); 
 
             } catch (err) {
                 showToast('Error', 'Invalid code: ' + err.message, 'error');
@@ -402,24 +395,57 @@ async function handleEnableMFA() {
     } catch (mfaError) {
         console.error("MFA Enrollment Error:", mfaError);
         
-        // Clean up verifier on error
         if (window.recaptchaVerifier) {
             try { window.recaptchaVerifier.clear(); } catch(e) {}
             window.recaptchaVerifier = null;
         }
-
+        
         let msg = mfaError.message;
-        if (mfaError.code === 'auth/requires-recent-login') {
-            msg = "You must log in again to enable 2FA. Redirecting...";
+        if (mfaError.code === 'auth/captcha-check-failed') {
+            msg = "Security check failed. Please refresh.";
+        } else if (mfaError.code === 'auth/invalid-phone-number') {
+            msg = "Invalid phone number format. Use +60...";
+        } else if (mfaError.code === 'auth/quota-exceeded') {
+            msg = "SMS quota exceeded for this project.";
+        } else if (mfaError.message.includes('400')) {
+             msg = "System blocked the request. If testing, ensure you are using a Test Number defined in Firebase Console.";
+        } else if (mfaError.code === 'auth/requires-recent-login') {
+            // *** FIX: Handle Requires Recent Login ***
+            showToast('Security Requirement', 'For security, you must re-login to enable 2FA. Redirecting...', 'warning');
             setTimeout(async () => {
                 await signOut(auth);
                 window.location.replace('/public/auth/login.html');
-            }, 2000);
-        } else if (mfaError.code === 'auth/captcha-check-failed') {
-             msg = "Browser blocked the security check. Please try a different browser or disable ad-blockers.";
+            }, 2500);
+            return;
         }
-        
-        showToast('Error', msg, 'error');
+
+        showToast('Error', 'MFA Failed: ' + msg, 'error');
+    }
+}
+
+async function handleDisableMFA() {
+    if (!currentUser) return;
+    
+    if (!confirm("Are you sure you want to disable 2FA? This reduces account security.")) return;
+
+    try {
+        const enrolledFactors = multiFactor(currentUser).enrolledFactors;
+        if (enrolledFactors.length === 0) return;
+
+        const factorUid = enrolledFactors[0].uid;
+        showToast("Info", "Disabling 2FA...", "info");
+        await multiFactor(currentUser).unenroll(factorUid);
+
+        const userRef = doc(db, 'user_data', currentUser.uid, 'profile', 'settings');
+        await setDoc(userRef, { mfa_enabled: false }, { merge: true });
+
+        showToast("Success", "2FA has been disabled.", "success");
+        await currentUser.reload();
+        loadUserProfile(currentUser);
+
+    } catch (error) {
+        console.error("Disable MFA Error:", error);
+        showToast("Error", "Failed to disable 2FA.", "error");
     }
 }
 
