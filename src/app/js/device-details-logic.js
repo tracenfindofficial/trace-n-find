@@ -14,7 +14,7 @@ import {
     getDeviceIcon,
     getDeviceColor,
     sanitizeHTML,
-    where
+    where // ✅ ensuring 'where' is imported for the fix
 } from '/app/js/app-shell.js'; 
 
 import { animateMarkerTo } from '/app/js/shared-utils.js';
@@ -60,7 +60,6 @@ const elements = {
     
     // Activity
     activityList: document.getElementById('activity-timeline'),
-    // Note: activityEmpty is not needed here as we will render it dynamically
     
     // Info
     infoOS: document.getElementById('device-os'),
@@ -118,14 +117,13 @@ function initPage(userId, deviceId) {
 function listenForUnreadNotifications(userId) {
     const notifsRef = collection(fbDB, 'user_data', userId, 'notifications');
     
-    // Query only unread items. We DO NOT use orderBy here to avoid needing a composite index (read + timestamp).
-    // We will sort and deduplicate client-side.
+    // Query only unread items.
     const q = query(notifsRef, where("read", "==", false));
 
     onSnapshot(q, (snapshot) => {
         const rawUnread = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // 1. Sort by timestamp descending (newest first) to ensure consistent deduplication
+        // 1. Sort by timestamp descending (newest first)
         rawUnread.sort((a, b) => getTimestampMs(b) - getTimestampMs(a));
 
         // 2. Deduplicate
@@ -154,14 +152,13 @@ function updateBadgeCount(count) {
     }
 }
 
-// Helper: Get unique notifications (Logic copied from notifications-logic.js)
+// Helper: Get unique notifications
 function getUniqueNotifications(notifications) {
     const unique = [];
     const seenSignatures = new Map(); // key: "type|title|msg", value: timestamp
 
     notifications.forEach(notification => {
         const timeMs = getTimestampMs(notification);
-        // Signature defines "sameness"
         const signature = `${notification.type}|${notification.title}|${notification.message}`;
         
         if (seenSignatures.has(signature)) {
@@ -170,11 +167,10 @@ function getUniqueNotifications(notifications) {
             
             // If the same message appears within 10 seconds, treat it as a duplicate
             if (timeDiff < 10000) { 
-                return; // Skip this one (it's a duplicate)
+                return; 
             }
         }
 
-        // It's unique (or significantly later), so keep it
         seenSignatures.set(signature, timeMs);
         unique.push(notification);
     });
@@ -182,7 +178,6 @@ function getUniqueNotifications(notifications) {
     return unique;
 }
 
-// Helper: robust timestamp extraction
 function getTimestampMs(notification) {
     if (notification.timestamp && typeof notification.timestamp.toMillis === 'function') {
         return notification.timestamp.toMillis();
@@ -208,26 +203,38 @@ function listenForDeviceData(userId, deviceId) {
     });
 }
 
-// --- Activity Logic (Functional & Robust) ---
+// --- Activity Logic (✅ FIXED: Server-side Filtering) ---
 function listenForActivityData(userId, deviceId) {
     const notificationsRef = collection(fbDB, 'user_data', userId, 'notifications');
-
-    // FIX: Filter inside the query so we get 50 items specifically for THIS device
+    
+    // ✅ FIX: Query specifically for THIS deviceId in the database.
+    // This solves the issue where older notifications for this device were hidden
+    // because they weren't in the "global top 50".
+    
+    // ⚠️ IMPORTANT: This query requires a Firestore Composite Index.
+    // If your activity list is empty, open the Console (F12).
+    // You will see a red error with a link. CLICK THAT LINK to create the index.
     const q = query(
         notificationsRef, 
-        where("deviceId", "==", deviceId), // Ensure your DB field is exactly "deviceId"
+        where("deviceId", "==", deviceId), 
         orderBy('timestamp', 'desc'), 
         limit(50)
     );
 
     activityListener = onSnapshot(q, (snapshot) => {
         const deviceActivities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Debugging
+        // console.log(`Loaded ${deviceActivities.length} activities for device ${deviceId}`);
+
         renderActivityList(deviceActivities);
     }, (error) => {
-        console.error("Activity Query Error:", error);
+        console.warn("Activity Query Error:", error);
         
-        // IMPORTANT: If you see this in the console, click the link provided 
-        // by Firebase to create the Composite Index.
+        // Fallback: If index is missing or query fails, show empty state nicely
+        // and log a clear message for the developer
+        console.log("👉 NOTE: If you see 'The query requires an index', click the link in the error above!");
+        renderActivityList([]);
     });
 }
 
@@ -238,7 +245,6 @@ function updateUI(device) {
     const info = device.info || {};
     const sim = device.sim || {};
     const security = device.security || {}; 
-    const location = device.location || {};
     
     // 2. Update Header Info
     const devName = device.name || device.model || 'Unknown Device';
@@ -264,7 +270,6 @@ function updateUI(device) {
 
     // Show "Live" indicator if online and updated recently (within 2 mins)
     const isOnline = (device.status === 'online' || device.status === 'active');
-    // Simple check: if string implies seconds/minutes ago or "Just now"
     const isRecent = timeAgo.includes('Just now') || timeAgo.includes('sec') || (timeAgo.includes('min') && parseInt(timeAgo) < 5);
     
     if (isOnline && isRecent && elements.liveIndicator) {
@@ -344,8 +349,6 @@ function renderActivityList(activities) {
     
     // Handle Empty State by Injecting HTML directly
     if (!activities || activities.length === 0) {
-        // We inject this directly. Note 'animation-fade-in' class to ensure visibility.
-        // We use 'bg-primary-50' as a safe light background.
         elements.activityList.innerHTML = `
             <div id="activity-empty" class="text-center p-6 animation-fade-in">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 dark:bg-primary-900/20 mb-4">
