@@ -308,9 +308,6 @@ class DevicePageManager {
                 <a href="/app/device-details.html?id=${device.id}" class="btn flex-1 bg-primary-600 text-white hover:bg-primary-700 text-sm py-2 px-3">
                     <i class="bi bi-eye mr-1.5"></i> Details
                 </a>
-                <button data-action="edit" data-id="${device.id}" class="action-btn btn flex-1 bg-slate-100 dark:bg-slate-700 text-text-primary dark:text-dark-text-primary hover:bg-slate-200 dark:hover:bg-slate-600 text-sm py-2 px-3">
-                    <i class="bi bi-pencil mr-1.5"></i> Edit
-                </button>
                 <button data-action="delete" data-id="${device.id}" class="action-btn btn bg-red-100 dark:bg-red-900/30 text-danger hover:bg-red-200 dark:hover:bg-red-900/50 text-sm py-2 px-3">
                     <i class="bi bi-trash"></i>
                 </button>

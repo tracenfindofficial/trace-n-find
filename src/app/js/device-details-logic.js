@@ -385,6 +385,8 @@ function updateMapMarker(device) {
             optimized: false
         });
 
+        map.panTo(position);
+
         // Add click listener for InfoWindow
         deviceMarker.addListener('click', () => {
             const content = `
@@ -402,6 +404,8 @@ function updateMapMarker(device) {
         
         // REPLACE setPosition WITH ANIMATION
         animateMarkerTo(deviceMarker, position);
+
+        map.panTo(position);
 
         // If info window is open, update content
         if (infoWindow.getMap()) {
